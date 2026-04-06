@@ -10,7 +10,7 @@
 <!-- 打字机 -->
 <div align="center">
   <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=22&duration=4000&pause=1000&color=00F5FF&width=435&lines=console.log(%22Welcome%22);I'm+from+Xheshou+." alt="Typing" />
-> 🌸 其余七匹亦殊绝，迥若寒空动烟雪。
+> 🌸 河西幕中多故人，故人别来三五春。
 
 
 <!-- GitHub 数据三连 -->
