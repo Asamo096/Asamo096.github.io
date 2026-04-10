@@ -10,7 +10,7 @@
 <!-- 打字机 -->
 <div align="center">
   <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=22&duration=4000&pause=1000&color=00F5FF&width=435&lines=console.log(%22Welcome%22);I'm+from+Xheshou+." alt="Typing" />
-> 🌸 有梅无雪不精神，有雪无诗俗了人。
+> 🌸 屈子冤魂终古在，楚乡遗俗至今留。
 
 
 <!-- GitHub 数据三连 -->
