@@ -10,7 +10,7 @@
 <!-- 打字机 -->
 <div align="center">
   <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=22&duration=4000&pause=1000&color=00F5FF&width=435&lines=console.log(%22Welcome%22);I'm+from+Xheshou+." alt="Typing" />
-> 🌸 单车欲问边，属国过居延。
+> 🌸 记得去年今夕，酾酒溪亭，淡月云来去。
 
 
 <!-- GitHub 数据三连 -->
