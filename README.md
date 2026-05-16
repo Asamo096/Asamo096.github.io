@@ -10,7 +10,7 @@
 <!-- 打字机 -->
 <div align="center">
   <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=22&duration=4000&pause=1000&color=00F5FF&width=435&lines=console.log(%22Welcome%22);I'm+from+Xheshou+." alt="Typing" />
-> 🌸 琴里知闻唯渌水，茶中故旧是蒙山。
+> 🌸 明月黄河夜，寒沙似战场。
 
 
 <!-- GitHub 数据三连 -->
