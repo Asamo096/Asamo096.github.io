@@ -10,7 +10,7 @@
 <!-- 打字机 -->
 <div align="center">
   <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=22&duration=4000&pause=1000&color=00F5FF&width=435&lines=console.log(%22Welcome%22);I'm+from+Xheshou+." alt="Typing" />
-> 🌸 竹叶于人既无分，菊花从此不须开。
+> 🌸 隔牖风惊竹，开门雪满山。
 
 
 <!-- GitHub 数据三连 -->
