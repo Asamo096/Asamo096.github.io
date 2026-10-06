@@ -1,0 +1,4273 @@
+<!doctype html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+        />
+        <title>像素校园 · 社联组织部招新探索</title>
+        <style>
+            /* =====================================================================
+   基础重置与页面底色
+   ===================================================================== */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                background: #3c4a3d; /* 投影留白区域：柔和的草绿深色，不刺眼 */
+                -webkit-font-smoothing: antialiased;
+            }
+
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overscroll-behavior: none; /* 移动端禁用下拉刷新与滚动回弹 */
+                -webkit-text-size-adjust: 100%;
+            }
+
+            /* 统一字体栈：优先像素中文字体，找不到则回落到系统黑体（无需任何外链） */
+            :root {
+                --font:
+                    "Zpix", "Fusion Pixel 12px", "方正像素", "Microsoft YaHei",
+                    "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC",
+                    sans-serif;
+            }
+
+            /* =====================================================================
+   画布（逻辑分辨率 640x360，通过 CSS 放大铺满屏幕，保持像素硬边）
+   ===================================================================== */
+            #game {
+                display: block;
+                image-rendering: pixelated;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+                background: #cfe9fb;
+                box-shadow:
+                    0 0 0 4px rgba(0, 0, 0, 0.12),
+                    0 14px 40px rgba(0, 0, 0, 0.28);
+            }
+
+            /* =====================================================================
+   UI 覆盖层：尺寸与画布完全对齐，1 逻辑像素 = --s 个 CSS 像素
+   ===================================================================== */
+            #ui {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 640px;
+                height: 360px;
+                pointer-events: none; /* 全部用键盘操作，不拦截鼠标 */
+                font-family: var(--font);
+                font-weight: 700;
+                letter-spacing: 0.04em;
+                color: #4b4034;
+                --s: 3;
+            }
+
+            /* ---------- 通用像素面板（双层描边，模拟复古游戏边框） ---------- */
+            .pxpanel {
+                background: #fff9ec;
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow:
+                    0 0 0 calc(var(--s) * 2px) #fffdf7,
+                    0 0 0 calc(var(--s) * 3px) #4b4034,
+                    0 0 0 calc(var(--s) * 6px) rgba(75, 64, 52, 0.1),
+                    0 calc(var(--s) * 6px) calc(var(--s) * 14px)
+                        rgba(52, 72, 44, 0.18);
+            }
+
+            /* =====================================================================
+   世界内浮动名牌（NPC 头顶 / 终点牌）
+   ===================================================================== */
+            #tags {
+                position: absolute;
+                inset: 0;
+            }
+
+            .wtag {
+                position: absolute;
+                left: 0;
+                top: 0;
+                transform: translate(-50%, -100%);
+                display: flex;
+                align-items: center;
+                gap: calc(var(--s) * 2px);
+                padding: calc(var(--s) * 1.2px) calc(var(--s) * 4px);
+                font-size: calc(var(--s) * 5px);
+                line-height: 1.35;
+                white-space: nowrap;
+                color: #3a3229;
+                background: #fffdf5;
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow:
+                    0 0 0 calc(var(--s) * 1px) #fffdf5,
+                    calc(var(--s) * 1px) calc(var(--s) * 2px) 0
+                        rgba(75, 64, 52, 0.22);
+                opacity: 0;
+                transition: opacity 0.25s ease;
+            }
+            .wtag.on {
+                opacity: 1;
+            }
+            .wtag .dot {
+                width: calc(var(--s) * 3px);
+                height: calc(var(--s) * 3px);
+                background: var(--c, #8fd3f4);
+                border: calc(var(--s) * 1px) solid #4b4034;
+                flex: none;
+            }
+            .wtag.goal {
+                background: #fff3d0;
+                font-size: calc(var(--s) * 5.6px);
+            }
+
+            /* 起点告示牌牌面文字：贴在木牌上，不加底色和边框 */
+            .wtag.sign {
+                justify-content: center;
+                width: calc(var(--s) * 62px);
+                height: calc(var(--s) * 38px);
+                padding: 0;
+                font-size: calc(var(--s) * 9.5px);
+                letter-spacing: 0.08em;
+                color: #7a6440;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                text-shadow: calc(var(--s) * 0.6px) calc(var(--s) * 0.6px) 0
+                    rgba(255, 255, 255, 0.7);
+            }
+            .wtag.sign::after {
+                display: none;
+            }
+
+            /* 终点拱门横幅上的「组 织 部」：三字等距铺开，不加底色和边框 */
+            .wtag.archtext {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: calc(var(--s) * 132px);
+                height: calc(var(--s) * 22px);
+                padding: 0;
+                font-size: calc(var(--s) * 12px);
+                color: #e0708c;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                text-shadow: calc(var(--s) * 0.6px) calc(var(--s) * 0.6px) 0
+                    rgba(255, 255, 255, 0.8);
+            }
+            .wtag.archtext::after {
+                display: none;
+            }
+
+            /* NPC 名牌下方的“三角指示” */
+            .wtag::after {
+                content: "";
+                position: absolute;
+                left: 50%;
+                bottom: calc(var(--s) * -3px);
+                width: 0;
+                height: 0;
+                margin-left: calc(var(--s) * -2px);
+                border-left: calc(var(--s) * 2px) solid transparent;
+                border-right: calc(var(--s) * 2px) solid transparent;
+                border-top: calc(var(--s) * 3px) solid #4b4034;
+            }
+
+            /* =====================================================================
+   顶部状态栏
+   ===================================================================== */
+            #hud {
+                position: absolute;
+                left: 0;
+                top: 0;
+                right: 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: calc(var(--s) * 5px) calc(var(--s) * 6px);
+                transition: opacity 0.3s ease;
+            }
+            /* 左上角一列：按钮开关 + 进度牌 */
+            .hud-left {
+                display: flex;
+                align-items: flex-start;
+                gap: calc(var(--s) * 4px);
+            }
+            /* 触控按钮开关：尺寸不随画布缩放，保证手机上也能点到 */
+            #touch-toggle {
+                flex: none;
+                width: clamp(44px, 5vmin, 60px);
+                height: clamp(44px, 5vmin, 60px);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 1px;
+                font-family: var(--font);
+                font-weight: 700;
+                font-size: clamp(11px, 1.45vmin, 15px);
+                line-height: 1.05;
+                color: #3a3229;
+                background: #fff9ec;
+                border: 2px solid #4b4034;
+                border-radius: 5px;
+                box-shadow:
+                    0 0 0 2px #fffdf7,
+                    0 3px 0 rgba(75, 64, 52, 0.28);
+                cursor: pointer;
+                pointer-events: auto; /* #ui 整体穿透，这里要单独打开 */
+                touch-action: manipulation;
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+            #touch-toggle b {
+                font-size: clamp(12px, 1.6vmin, 17px);
+            }
+            #touch-toggle:active {
+                transform: translateY(2px);
+                box-shadow:
+                    0 0 0 2px #fffdf7,
+                    0 1px 0 rgba(75, 64, 52, 0.28);
+            }
+            /* 按钮开着时变绿，一眼可辨 */
+            #touch-toggle.on {
+                background: #d8f0d4;
+            }
+
+            /* 强制显示 / 隐藏触控层（覆盖设备判定） */
+            #touch.force-on {
+                display: block !important;
+            }
+            #touch.force-off {
+                display: none !important;
+            }
+            .hud-chip {
+                display: flex;
+                align-items: center;
+                gap: calc(var(--s) * 3px);
+                padding: calc(var(--s) * 2px) calc(var(--s) * 5px);
+                font-size: calc(var(--s) * 4.6px);
+                background: rgba(255, 253, 247, 0.92);
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow: calc(var(--s) * 1px) calc(var(--s) * 2px) 0
+                    rgba(75, 64, 52, 0.18);
+                color: #3a3229;
+            }
+            .hud-chip .num {
+                color: #2f7d4f;
+                font-variant-numeric: tabular-nums;
+            }
+            .pips {
+                display: flex;
+                gap: calc(var(--s) * 1.5px);
+                margin-left: calc(var(--s) * 1px);
+            }
+            .pips i {
+                display: block;
+                width: calc(var(--s) * 3px);
+                height: calc(var(--s) * 3px);
+                background: #e4dccc;
+                border: calc(var(--s) * 1px) solid #8c8071;
+            }
+            .pips i.on {
+                background: #ff9fb4;
+                border-color: #c9647d;
+            }
+            .hud-chip.keys {
+                opacity: 0.85;
+                font-weight: 600;
+            }
+
+            /* =====================================================================
+   对话框
+   ===================================================================== */
+            #dialog {
+                position: absolute;
+                left: 50%;
+                top: calc(var(--s) * 34px);   /* 屏幕上方：投影时下沿常被前排观众挡住 */
+                width: 92%;
+                padding: calc(var(--s) * 32px) calc(var(--s) * 11px) calc(var(--s) * 9px);
+                font-size: calc(var(--s) * 12px);
+                line-height: 1.78;
+                transform: translateX(-50%) translateY(calc(var(--s) * -10px))
+                    scale(0.98);
+                opacity: 0;
+                transition:
+                    opacity 0.18s ease-out,
+                    transform 0.18s ease-out;
+            }
+            #dialog.show {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0) scale(1);
+            }
+
+            #dlg-name {
+                position: absolute;
+                left: calc(var(--s) * 11px);
+                top: calc(var(--s) * 8px);
+                padding: calc(var(--s) * 1.6px) calc(var(--s) * 5px);
+                font-size: calc(var(--s) * 8.2px);
+                color: #2f2a23;
+                background: var(--c, #8fd3f4);
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow: 0 0 0 calc(var(--s) * 1.5px) #fff9ec;
+            }
+
+            #dlg-text {
+                color: #40382d;
+                text-shadow: 0 calc(var(--s) * 0.5px) 0 rgba(255, 255, 255, 0.8);
+                min-height: 1.85em;
+            }
+
+            #dlg-hint {
+                margin-top: calc(var(--s) * 3px);
+                text-align: right;
+                font-size: calc(var(--s) * 5px);
+                color: #9a8b76;
+                font-weight: 600;
+            }
+            #dlg-hint .arrow {
+                display: inline-block;
+                animation: blink 1s steps(1, end) infinite;
+            }
+            @keyframes blink {
+                0%,
+                60% {
+                    opacity: 1;
+                }
+                61%,
+                100% {
+                    opacity: 0.15;
+                }
+            }
+
+            /* =====================================================================
+   标题页
+   ===================================================================== */
+            #title {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: radial-gradient(
+                    120% 90% at 50% 10%,
+                    rgba(255, 255, 255, 0.84) 0%,
+                    rgba(255, 252, 240, 0.62) 48%,
+                    rgba(206, 234, 246, 0.52) 100%
+                );
+                transition: opacity 0.55s ease;
+            }
+            #title.hide {
+                opacity: 0;
+            }
+            .title-card {
+                text-align: center;
+                padding: calc(var(--s) * 24px) calc(var(--s) * 40px);
+                background: rgba(255, 255, 255, 0.8);
+                border: calc(var(--s) * 1px) solid rgba(75, 64, 52, 0.35);
+                box-shadow:
+                    0 0 0 calc(var(--s) * 2px) rgba(255, 255, 255, 0.7),
+                    0 calc(var(--s) * 8px) calc(var(--s) * 20px)
+                        rgba(52, 72, 44, 0.12);
+            }
+            .t-sub {
+                font-size: calc(var(--s) * 7.5px);
+                letter-spacing: 0.5em;
+                color: #7d9a86;
+                margin-bottom: calc(var(--s) * 8px);
+            }
+            .t-main {
+                font-size: calc(var(--s) * 29px);
+                line-height: 1.25;
+                color: #35443a;
+                letter-spacing: 0.06em;
+                text-shadow:
+                    calc(var(--s) * 1px) calc(var(--s) * 1px) 0 #fff,
+                    calc(var(--s) * 2px) calc(var(--s) * 2px) 0 #cfe6d4;
+            }
+            .t-line {
+                margin-top: calc(var(--s) * 11px);
+                font-size: calc(var(--s) * 10.5px);
+                color: #6b8a76;
+                letter-spacing: 0.16em;
+            }
+            .t-keys {
+                margin-top: calc(var(--s) * 18px);
+                font-size: calc(var(--s) * 7.2px);
+                color: #8a9a8f;
+                font-weight: 600;
+                letter-spacing: 0.1em;
+            }
+            .t-start {
+                margin-top: calc(var(--s) * 15px);
+                font-size: calc(var(--s) * 10.5px);
+                color: #d4718c;
+                animation: breathe 1.6s ease-in-out infinite;
+            }
+            @keyframes breathe {
+                0%,
+                100% {
+                    opacity: 0.45;
+                }
+                50% {
+                    opacity: 1;
+                }
+            }
+
+            /* =====================================================================
+   Galgame 问答界面（组织部部长）
+   —— 上方：纯 CSS 绘制的角色立绘占位框
+   —— 下方：底部对话框（左侧角色名） + 可点击的提问选项按钮
+   ===================================================================== */
+            #gal {
+                position: absolute;
+                inset: 0;
+                display: none;
+                background: linear-gradient(
+                    180deg,
+                    #e8f6ff 0%,
+                    #eefaf0 42%,
+                    #fffbf1 100%
+                );
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                pointer-events: none; /* 只有对话框与选项按钮可点 */
+            }
+            #gal.on {
+                display: block;
+            }
+            #gal.show {
+                opacity: 1;
+            }
+
+            /* ---------- 立绘占位框 ---------- */
+            .gal-figure {
+                position: absolute;
+                left: 50%;
+                top: calc(var(--s) * 6px);
+                transform: translateX(-50%);
+                width: calc(var(--s) * 106px);
+                height: calc(var(--s) * 88px);
+                /* 基准点放在左上角：像素图的 box-shadow 从基准点向右下铺开 */
+                display: block;
+                padding: calc(var(--s) * 3px) 0 0 calc(var(--s) * 21px);
+                background: linear-gradient(
+                    180deg,
+                    #ffffff 0%,
+                    #eef8ff 62%,
+                    #e3f3e4 100%
+                );
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow:
+                    0 0 0 calc(var(--s) * 2px) #fffdf7,
+                    0 0 0 calc(var(--s) * 3px) #4b4034,
+                    0 calc(var(--s) * 6px) calc(var(--s) * 14px)
+                        rgba(52, 72, 44, 0.14);
+                overflow: hidden;
+            }
+            /* 像素点：1em 方块 + 大量 box-shadow 拼成立绘（纯 CSS，无图片） */
+            .gal-px {
+                display: block;
+                width: 1em;
+                height: 1em;
+                font-size: calc(var(--s) * 2.7px);
+                background: transparent;
+            }
+            .gal-figure-cap {
+                position: absolute;
+                left: 50%;
+                top: calc(var(--s) * 96px);
+                transform: translateX(-50%);
+                font-size: calc(var(--s) * 4.6px);
+                color: #9aa79b;
+                letter-spacing: 0.12em;
+                white-space: nowrap;
+            }
+
+            /* ---------- 对话框（固定在选项上方，高度按最长回复预留 4 行） ---------- */
+            .gal-dialog {
+                position: absolute;
+                left: 5%;
+                right: 5%;
+                top: calc(var(--s) * 118px);
+                height: calc(var(--s) * 118px);
+                padding: calc(var(--s) * 12px) calc(var(--s) * 10px)
+                    calc(var(--s) * 9px);
+                pointer-events: auto;
+                cursor: pointer;
+            }
+            .gal-nameplate {
+                position: absolute;
+                left: calc(var(--s) * 9px);
+                top: calc(var(--s) * -8px);
+                padding: calc(var(--s) * 1.8px) calc(var(--s) * 8px);
+                font-size: calc(var(--s) * 9.6px);
+                color: #2f2a23;
+                background: var(--c, #8fd3f4);
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow: 0 0 0 calc(var(--s) * 2px) #fff9ec;
+            }
+            .gal-exit {
+                position: absolute;
+                right: calc(var(--s) * 9px);
+                top: calc(var(--s) * -8px);
+                padding: calc(var(--s) * 2px) calc(var(--s) * 6px);
+                font-family: var(--font);
+                font-weight: 700;
+                font-size: calc(var(--s) * 7.4px);
+                letter-spacing: 0.03em;
+                color: #8a5a3a;
+                background: #ffe9b8;
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow: 0 0 0 calc(var(--s) * 2px) #fff9ec;
+                cursor: pointer;
+                pointer-events: auto;
+                transition:
+                    background 0.12s ease,
+                    transform 0.12s ease;
+            }
+            .gal-exit:hover {
+                background: #ffd98a;
+                transform: translateY(calc(var(--s) * -1px));
+            }
+
+            .gal-text {
+                white-space: pre-line;   /* 允许文案里用 \n 换行 */
+                font-size: calc(var(--s) * 14px);
+                line-height: 1.62;
+                letter-spacing: 0.01em;
+                color: #40382d;
+                text-shadow: 0 calc(var(--s) * 0.5px) 0
+                    rgba(255, 255, 255, 0.85);
+            }
+            .gal-foot {
+                position: absolute;
+                left: calc(var(--s) * 10px);
+                right: calc(var(--s) * 10px);
+                bottom: calc(var(--s) * 6px);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: calc(var(--s) * 5.6px);
+                font-weight: 600;
+                color: #9a8b76;
+            }
+            .gal-skip {
+                opacity: 0;
+                transition: opacity 0.2s ease;
+            }
+            .gal-skip.on {
+                opacity: 1;
+                animation: blink 1s steps(1, end) infinite;
+            }
+
+            /* ---------- 提问选项按钮 ---------- */
+            .gal-options {
+                position: absolute;
+                left: 5%;
+                right: 5%;
+                top: calc(var(--s) * 244px);
+                height: calc(var(--s) * 104px);
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-auto-rows: 1fr;
+                gap: calc(var(--s) * 4px) calc(var(--s) * 4px);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s ease;
+            }
+            #gal.opts .gal-options {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .gal-opt {
+                display: flex;
+                align-items: center;
+                gap: calc(var(--s) * 3px);
+                padding: 0 calc(var(--s) * 5px);
+                font-family: var(--font);
+                font-weight: 700;
+                letter-spacing: 0.02em;
+                font-size: calc(var(--s) * 7px);
+                color: #3a3229;
+                text-align: left;
+                white-space: nowrap;
+                overflow: hidden;
+                background: #fffdf5;
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow: calc(var(--s) * 1px) calc(var(--s) * 2px) 0
+                    rgba(75, 64, 52, 0.16);
+                cursor: pointer;
+                pointer-events: auto;
+                transition:
+                    background 0.12s ease,
+                    transform 0.1s ease;
+            }
+            .gal-opt .num {
+                flex: none;
+                color: #c07a3a;
+            }
+            .gal-opt .qt {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .gal-opt:hover,
+            .gal-opt.sel {
+                background: #ffeeb8;
+                transform: translateX(calc(var(--s) * 2px));
+            }
+            .gal-opt.done {
+                background: #f0f8ee;
+            }
+            .gal-opt.done::after {
+                content: "✓";
+                margin-left: auto;
+                padding-left: calc(var(--s) * 3px);
+                color: #4f9e6a;
+                flex: none;
+            }
+
+            /* =====================================================================
+   活动展板：其余 NPC 的群像背景（纯 CSS 绘制，可点击查看照片）
+   —— 展板整体位于人物头顶以上的区域，不会遮住角色
+   ===================================================================== */
+            #booths {
+                position: absolute;
+                inset: 0;
+            }
+
+            .booth {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: calc(var(--s) * 280px);
+                height: calc(var(--s) * 108px);
+                transform: translate(-50%, -100%) scale(0.94);
+                opacity: 0;
+                pointer-events: none;
+                transition:
+                    opacity 0.35s ease,
+                    transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
+            }
+            .booth.on {
+                opacity: 1;
+                pointer-events: auto;
+                cursor: pointer;
+                transform: translate(-50%, -100%) scale(1);
+            }
+
+            .booth-frame {
+                position: absolute;
+                inset: 0;
+                background: #fff9ec;
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow:
+                    0 0 0 calc(var(--s) * 2px) #fffdf7,
+                    0 0 0 calc(var(--s) * 3px) #4b4034,
+                    0 calc(var(--s) * 6px) calc(var(--s) * 14px)
+                        rgba(52, 72, 44, 0.2);
+                overflow: hidden;
+                transition: transform 0.14s ease;
+            }
+            .booth:hover .booth-frame {
+                transform: translateY(calc(var(--s) * -3px));
+            }
+
+            /* 场景区：1em = 2 逻辑像素，所有元素用 em 定位，缩放时保持像素硬边 */
+            .booth-scene {
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                height: calc(var(--s) * 92px);
+                font-size: calc(var(--s) * 2px);
+                overflow: hidden;
+            }
+            .booth-px {
+                position: absolute;
+            }
+
+            .booth-cap {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                height: calc(var(--s) * 16px);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 calc(var(--s) * 5px);
+                font-size: calc(var(--s) * 4.6px);
+                color: #3a3229;
+                background: #ffeec8;
+                border-top: calc(var(--s) * 1px) solid #4b4034;
+            }
+            .booth-cap .tip {
+                color: #a8763a;
+                font-size: calc(var(--s) * 4.2px);
+            }
+
+            /* =====================================================================
+   照片画框（点击展板后弹出）
+   ===================================================================== */
+            #photo {
+                position: absolute;
+                inset: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background: rgba(38, 48, 40, 0.58);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.22s ease;
+            }
+            #photo.on {
+                display: flex;
+            }
+            #photo.show {
+                opacity: 1;
+                pointer-events: auto;
+                cursor: pointer;
+            }
+
+            .photo-card {
+                /* 卡片宽度贴合相框，不再留出大片空白 */
+                width: fit-content;
+                max-width: 92%;
+                padding: calc(var(--s) * 8px);
+                display: flex;
+                flex-direction: column;
+                gap: calc(var(--s) * 5px);
+            }
+            .photo-head {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+            }
+            .photo-head .t {
+                font-size: calc(var(--s) * 6px);
+                color: #35443a;
+            }
+            .photo-head .x {
+                font-size: calc(var(--s) * 4.2px);
+                color: #9a8b76;
+            }
+            .photo-frame {
+                position: relative;
+                /* 默认按 4:3 显示；图片加载后由脚本按真实宽高比精确贴合 */
+                width: calc(var(--s) * 344px);
+                height: calc(var(--s) * 258px);
+                margin: 0 auto;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                background: #f4f1e8;
+                border: calc(var(--s) * 1px) solid #4b4034;
+                box-shadow: inset 0 0 0 calc(var(--s) * 2px) #fffdf7;
+            }
+            .photo-frame img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;   /* 相框已按比例贴合，图片正好铺满 */
+                display: block;
+                image-rendering: auto;
+            }
+            /* 图片尚未放入时的占位提示 */
+            .photo-hold {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: calc(var(--s) * 4px);
+                text-align: center;
+                color: #8a8072;
+            }
+            .photo-hold .ph1 {
+                font-size: calc(var(--s) * 5.4px);
+                color: #6b7f6f;
+            }
+            .photo-hold .ph2 {
+                font-size: calc(var(--s) * 5.6px);
+                color: #c0653a;
+                padding: calc(var(--s) * 2px) calc(var(--s) * 6px);
+                border: calc(var(--s) * 1px) dashed #c0a98a;
+                background: #fffdf6;
+            }
+            .photo-hold .ph3 {
+                font-size: calc(var(--s) * 4px);
+                color: #a09a8c;
+            }
+            .photo-hold.hide {
+                display: none;
+            }
+
+            /* =====================================================================
+   结局彩蛋
+   ===================================================================== */
+            #ending {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.8s ease;
+                overflow: hidden;
+            }
+            #ending.show {
+                opacity: 1;
+            }
+
+            /* 淡入高光：文字后方的柔和暖晕（不再把整张黄昏画面冲白） */
+            .end-glow {
+                position: absolute;
+                inset: -20%;
+                background: radial-gradient(
+                    58% 52% at 50% 46%,
+                    rgba(255, 252, 238, 0.74) 0%,
+                    rgba(255, 246, 222, 0.4) 46%,
+                    rgba(255, 240, 210, 0) 100%
+                );
+                transform: scale(0.4);
+                opacity: 0;
+                animation: glowIn 2.2s cubic-bezier(0.2, 0.8, 0.3, 1) 0.15s
+                    forwards;
+            }
+            @keyframes glowIn {
+                0% {
+                    transform: scale(0.4);
+                    opacity: 0;
+                }
+                45% {
+                    transform: scale(1.02);
+                    opacity: 1;
+                }
+                100% {
+                    transform: scale(1.12);
+                    opacity: 0.92;
+                }
+            }
+
+            .end-card {
+                position: relative;
+                text-align: center;
+                padding: calc(var(--s) * 14px) calc(var(--s) * 24px);
+                overflow: hidden;
+                transform: translateY(calc(var(--s) * 10px));
+                animation: cardIn 0.9s cubic-bezier(0.2, 0.9, 0.25, 1) 0.35s
+                    forwards;
+            }
+            @keyframes cardIn {
+                from {
+                    transform: translateY(calc(var(--s) * 14px)) scale(0.96);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0) scale(1);
+                    opacity: 1;
+                }
+            }
+            /* 扫过的高光条 */
+            .end-card::after {
+                content: "";
+                position: absolute;
+                top: -60%;
+                bottom: -60%;
+                left: -40%;
+                width: 34%;
+                background: linear-gradient(
+                    100deg,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0.85) 50%,
+                    rgba(255, 255, 255, 0) 100%
+                );
+                transform: translateX(-160%) rotate(8deg);
+                animation: sweep 2.4s ease-in-out 1.5s forwards;
+                pointer-events: none;
+            }
+            @keyframes sweep {
+                0% {
+                    transform: translateX(-160%) rotate(8deg);
+                    opacity: 0;
+                }
+                15% {
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateX(560%) rotate(8deg);
+                    opacity: 0;
+                }
+            }
+
+            .end-line {
+                opacity: 0;
+                animation: lineIn 0.75s ease-out forwards;
+            }
+            @keyframes lineIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(calc(var(--s) * 5px));
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            .end-line.l1 {
+                font-size: calc(var(--s) * 15px);
+                color: #35443a;
+                letter-spacing: 0.08em;
+                text-shadow:
+                    calc(var(--s) * 1px) calc(var(--s) * 1px) 0 #fff,
+                    calc(var(--s) * 2px) calc(var(--s) * 2px) 0 #d8ecd8;
+                animation-delay: 0.35s;
+            }
+            .end-line.l2 {
+                margin-top: calc(var(--s) * 9px);
+                font-size: calc(var(--s) * 10.5px);
+                color: #2f7d4f;
+                letter-spacing: 0.06em;
+                animation-delay: 1.05s;
+            }
+            .end-line.l3 {
+                margin-top: calc(var(--s) * 6px);
+                font-size: calc(var(--s) * 7.6px);
+                color: #b06a7e;
+                letter-spacing: 0.18em;
+                animation-delay: 1.75s;
+            }
+            .end-line.l4 {
+                margin-top: calc(var(--s) * 5px);
+                font-size: calc(var(--s) * 8.4px);
+                color: #5c7a66;
+                letter-spacing: 0.1em;
+                animation-delay: 2.35s;
+            }
+            .end-hint {
+                margin-top: calc(var(--s) * 16px);
+                font-size: calc(var(--s) * 4.4px);
+                color: #a09a8c;
+                font-weight: 600;
+                opacity: 0;
+                animation: lineIn 0.7s ease-out 3.4s forwards;
+            }
+
+            /* =====================================================================
+   画面四角轻微暗角，让投影画面更聚焦（纯 CSS，无外部资源）
+   ===================================================================== */
+            #vignette {
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(
+                    120% 100% at 50% 45%,
+                    rgba(0, 0, 0, 0) 55%,
+                    rgba(40, 55, 40, 0.16) 100%
+                );
+            }
+
+            /* =====================================================================
+   移动端触控按钮：像素风外观，与游戏同一套视觉
+   —— 尺寸用固定 px/clamp（不随画布 --s 缩放），保证手指可点
+   —— 仅在触摸设备上显示，投影与桌面端保持干净
+   ===================================================================== */
+            #touch {
+                position: fixed;
+                inset: 0;
+                display: none;
+                pointer-events: none; /* 只有按钮可点，其余穿透 */
+                z-index: 20;
+                font-family: var(--font);
+                font-weight: 700;
+                --tb: clamp(54px, 13.5vw, 86px); /* 按钮边长 */
+            }
+            .tc-pad {
+                position: absolute;
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+                display: none;
+                gap: 14px;
+                align-items: center;
+            }
+            .tc-pad.on {
+                display: flex;
+            }
+            .tc-move {
+                left: calc(env(safe-area-inset-left, 0px) + 14px);
+            }
+            .tc-act {
+                right: calc(env(safe-area-inset-right, 0px) + 14px);
+            }
+            .tc-again {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            .tc-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: var(--tb);
+                height: var(--tb);
+                font-family: var(--font);
+                font-weight: 700;
+                font-size: calc(var(--tb) * 0.4);
+                line-height: 1;
+                color: #3a3229;
+                background: #fff9ec;
+                border: 3px solid #4b4034;
+                border-radius: 6px;
+                box-shadow:
+                    0 0 0 3px #fffdf7,
+                    0 5px 0 rgba(75, 64, 52, 0.28);
+                cursor: pointer;
+                pointer-events: auto;
+                touch-action: none; /* 阻止滚动与双击缩放 */
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-tap-highlight-color: transparent;
+                transition:
+                    background 0.1s ease,
+                    transform 0.06s ease;
+            }
+            .tc-btn:active {
+                background: #ffeeb8;
+                transform: translateY(3px);
+                box-shadow:
+                    0 0 0 3px #fffdf7,
+                    0 2px 0 rgba(75, 64, 52, 0.28);
+            }
+            .tc-wide {
+                width: calc(var(--tb) * 1.85);
+                font-size: calc(var(--tb) * 0.3);
+                letter-spacing: 0.1em;
+            }
+
+            .tc-rotate {
+                position: absolute;
+                left: 50%;
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 14px + var(--tb) + 18px);
+                transform: translateX(-50%);
+                padding: 9px 16px;
+                font-family: var(--font);
+                font-weight: 700;
+                font-size: 14px;
+                letter-spacing: 0.06em;
+                white-space: nowrap;
+                color: #3a3229;
+                background: #fff9ec;
+                border: 3px solid #4b4034;
+                border-radius: 6px;
+                box-shadow:
+                    0 0 0 3px #fffdf7,
+                    0 5px 0 rgba(75, 64, 52, 0.28);
+                display: none;
+            }
+            /* 仅触摸设备 + 竖屏时提示横屏（转过屏幕即自动消失） */
+            @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+                .tc-rotate {
+                    display: block;
+                }
+            }
+            /* 触摸设备：显示触控按钮，并隐藏只对键盘有意义的提示 */
+            @media (hover: none) and (pointer: coarse) {
+                #touch {
+                    display: block;
+                }
+                .hud-chip.keys {
+                    display: none;
+                }
+                .gal-foot > span:first-child {
+                    display: none;
+                }
+                .end-hint {
+                    display: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- ===================== 游戏画布 ===================== -->
+        <canvas id="game" width="640" height="360"></canvas>
+
+        <!-- ===================== UI 覆盖层 ===================== -->
+        <div id="ui">
+            <div id="vignette"></div>
+            <div id="tags"></div>
+            <div id="booths"></div>
+
+            <!-- 顶部状态栏（标题页隐藏，开始探索后再出现） -->
+            <div id="hud" style="opacity: 0">
+                <div class="hud-left">
+                    <!-- 触控按钮开关：桌面端也能切出按钮来做演示 -->
+                    <button
+                        id="touch-toggle"
+                        type="button"
+                        aria-pressed="false"
+                        title="显示 / 隐藏触控按钮"
+                    >
+                        <span>按钮</span><b id="touch-state">关</b>
+                    </button>
+                    <div class="hud-chip">
+                        <span>探索进度</span>
+                        <span class="num" id="hud-num">0 / 5</span>
+                        <span class="pips" id="hud-pips"></span>
+                    </div>
+                </div>
+                <div class="hud-chip keys">
+                    ← → 移动　空格 关闭对话　M 音乐　R 重来
+                </div>
+            </div>
+
+            <!-- 对话框 -->
+            <div id="dialog" class="pxpanel">
+                <div id="dlg-name">学姐</div>
+                <div id="dlg-text"></div>
+                <div id="dlg-hint">
+                    按 <b>空格</b> 继续 <span class="arrow">▼</span>
+                </div>
+            </div>
+
+            <!-- ============ Galgame 问答界面（组织部部长） ============ -->
+            <div id="gal">
+                <!-- 角色立绘占位框：像素立绘完全由 CSS 的 box-shadow 拼出 -->
+                <div class="gal-figure">
+                    <div class="gal-px" id="gal-px"></div>
+                </div>
+                <div class="gal-figure-cap">组织部部长 ~ 张怀志</div>
+
+                <!-- 对话框：左侧角色名，右侧结束提问 -->
+                <div class="gal-dialog pxpanel" id="gal-dialog">
+                    <div class="gal-nameplate" id="gal-name">组织部部长</div>
+                    <button class="gal-exit" id="gal-exit" type="button">
+                        结束提问，继续探索 →
+                    </button>
+                    <div class="gal-text" id="gal-text"></div>
+                    <div class="gal-foot">
+                        <span>↑ ↓ 选择问题　Enter 确认　也可直接点击选项</span>
+                        <span class="gal-skip" id="gal-skip">点击文字可跳过 ▼</span>
+                    </div>
+                </div>
+
+                <!-- 玩家可点击的提问选项（位于对话框下方，与原来一致） -->
+                <div class="gal-options" id="gal-options"></div>
+            </div>
+
+            <!-- 照片画框：点击活动展板后弹出 -->
+            <div id="photo">
+                <div class="photo-card pxpanel">
+                    <div class="photo-head">
+                        <span class="t" id="photo-title">辩论赛</span>
+                        <span class="x">点击任意位置 / 按空格 关闭</span>
+                    </div>
+                    <div class="photo-frame" id="photo-frame">
+                        <img id="photo-img" alt="" />
+                        <div class="photo-hold" id="photo-hold">
+                            <div class="ph1">照片占位</div>
+                            <div class="ph2" id="photo-file">
+                                photo-debate.jpg
+                            </div>
+                            <div class="ph3">
+                                把这张图片放到与本网页相同的目录，刷新即可显示
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 标题页 -->
+            <div id="title">
+                <div class="title-card">
+                    <div class="t-sub">像素校园探索</div>
+                    <div class="t-main">社联组织部</div>
+                    <div class="t-line">以细致立身 · 以统筹成事</div>
+                    <div class="t-keys">← → 左右移动　·　空格 关闭对话</div>
+                    <div class="t-start">按 空格 键 开始探索</div>
+                </div>
+            </div>
+
+            <!-- 结局彩蛋 -->
+            <div id="ending">
+                <div class="end-glow"></div>
+                <div class="end-card">
+                    <div class="end-line l1">探索完成！</div>
+                    <div class="end-line l2">欢迎加入 社联组织部</div>
+                    <div class="end-line l3">以细致立身，以统筹成事</div>
+                    <div class="end-line l4">我们在这里等你相遇！</div>
+                    <div class="end-hint">按 R 键 重新开始探索</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ 移动端触控按钮（仅触摸设备显示） ============ -->
+        <div id="touch">
+            <div class="tc-pad tc-move">
+                <button class="tc-btn" type="button" data-key="ArrowLeft" aria-label="向左走">◀</button>
+                <button class="tc-btn" type="button" data-key="ArrowRight" aria-label="向右走">▶</button>
+            </div>
+            <div class="tc-pad tc-act">
+                <button class="tc-btn tc-wide" type="button" data-key="Space" id="tc-action">继 续</button>
+            </div>
+            <div class="tc-rotate">建议横屏使用，画面更大更好点</div>
+            <div class="tc-pad tc-again">
+                <button class="tc-btn tc-wide" type="button" data-key="KeyR">重新开始</button>
+            </div>
+        </div>
+        <script>
+            "use strict";
+            /* =====================================================================
+   像素校园 · 社联组织部招新探索
+   单文件 / 纯前端 / 无外部资源 / 双击即可运行
+   ---------------------------------------------------------------------
+   目录：
+     1. 基础常量
+     2. 工具函数
+     3. 音效引擎（Web Audio 实时合成，无音频文件）
+     4. 剧情文案与 NPC 数据
+     5. 角色与景物绘制
+     6. 场景预渲染（草地 / 装饰物）
+     7. 游戏状态
+     8. 更新逻辑
+     9. 渲染
+    10. Galgame 问答界面（组织部部长）
+    11. 活动展板（群像背景）与照片画框
+    12. 输入、界面联动与主循环
+   ===================================================================== */
+            (function () {
+                /* =====================================================================
+   1. 基础常量
+   ===================================================================== */
+                const VW = 640; // 逻辑分辨率宽
+                const VH = 360; // 逻辑分辨率高
+                const HORIZON = 228; // 地平线 y
+                const GROUND_Y = 306; // 人物脚底基线 y
+                const WORLD_W = 4600; // 世界总宽度（超长横向地图）
+                const END_TRIGGER_X = 4380; // 抵达终点的触发横坐标
+                const PLAYER_MIN_X = 40;
+                const PLAYER_MAX_X = 4520;
+                const SPEED = 175; // 最大移动速度（逻辑像素/秒）
+                const ACCEL = 980; // 加速度（起步更干脆）
+                const FRICTION = 1900; // 松手后的减速
+                const CHAR_SCALE = 2; // 人物整体放大倍数（投影时看得清）
+                const NPC_TRIGGER = 70; // 自动触发对话的距离
+                const NPC_RELEASE = 116; // 离开该距离后可重新触发
+                const WALK_FRAME_TIME = 0.1; // 每帧走路动画时长（与移动速度同步加快，避免脚下打滑）
+                const STEP_INTERVAL = 0.2; // 脚步声间隔
+
+                /* =====================================================================
+   2. 工具函数
+   ===================================================================== */
+                const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
+                /** 像素风矩形：坐标取整，保证边缘硬朗 */
+                function rect(g, x, y, w, h, color) {
+                    g.fillStyle = color;
+                    g.fillRect(
+                        Math.round(x),
+                        Math.round(y),
+                        Math.round(w),
+                        Math.round(h),
+                    );
+                }
+
+                /** 像素风实心圆（逐行扫描，天然带阶梯感） */
+                function pixelCircle(g, cx, cy, r, color) {
+                    g.fillStyle = color;
+                    for (let y = -r; y <= r; y++) {
+                        const w = Math.floor(Math.sqrt(r * r - y * y));
+                        g.fillRect(
+                            Math.round(cx - w),
+                            Math.round(cy + y),
+                            w * 2 + 1,
+                            1,
+                        );
+                    }
+                }
+
+                /** 可复现随机数（保证每次打开场景布局一致） */
+                function mulberry32(seed) {
+                    let a = seed >>> 0;
+                    return function () {
+                        a = (a + 0x6d2b79f5) >>> 0;
+                        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+                        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+                    };
+                }
+
+                /** 颜色加深 / 提亮：amt 为负变暗，为正变亮 */
+                function shade(hex, amt) {
+                    const n = parseInt(hex.slice(1), 16);
+                    const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(
+                        (v) =>
+                            Math.max(
+                                0,
+                                Math.min(255, Math.round(v * (1 + amt))),
+                            ),
+                    );
+                    return (
+                        "#" +
+                        c.map((v) => v.toString(16).padStart(2, "0")).join("")
+                    );
+                }
+
+                /** 像素风圆角面板（用于提示气泡） */
+                function pxPanel(g, x, y, w, h, fill, edge) {
+                    rect(g, x + 1, y, w - 2, h, edge);
+                    rect(g, x, y + 1, w, h - 2, edge);
+                    rect(g, x + 2, y + 1, w - 4, h - 2, fill);
+                    rect(g, x + 1, y + 2, w - 2, h - 4, fill);
+                }
+
+                /* =====================================================================
+   3. 音效引擎
+   —— 全部使用 Web Audio 实时合成，不加载任何音频文件
+   ===================================================================== */
+                const Sound = (function () {
+                    let ctx = null,
+                        master = null,
+                        noiseBuf = null,
+                        bgmGain = null;
+                    let bgmOn = false,
+                        bgmTimer = null;
+
+                    /** 首次用户交互时初始化音频上下文 */
+                    function init() {
+                        if (ctx) {
+                            if (ctx.state === "suspended") ctx.resume();
+                            return;
+                        }
+                        const AC =
+                            window.AudioContext || window.webkitAudioContext;
+                        if (!AC) return;
+                        ctx = new AC();
+                        master = ctx.createGain();
+                        master.gain.value = 0.85;
+                        master.connect(ctx.destination);
+
+                        // 预生成一段白噪声，用于脚步等摩擦音
+                        const len = Math.floor(ctx.sampleRate * 0.4);
+                        noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+                        const data = noiseBuf.getChannelData(0);
+                        for (let i = 0; i < len; i++)
+                            data[i] = Math.random() * 2 - 1;
+                    }
+
+                    /** 在指定「绝对时间」上播放一个合成音（方波 = 复古 8bit 音色） */
+                    function toneAt(freq, dur, type, vol, t0, glideTo, dest) {
+                        if (!ctx) return;
+                        const osc = ctx.createOscillator();
+                        const g = ctx.createGain();
+                        osc.type = type || "square";
+                        osc.frequency.setValueAtTime(freq, t0);
+                        if (glideTo)
+                            osc.frequency.linearRampToValueAtTime(
+                                glideTo,
+                                t0 + dur,
+                            );
+                        g.gain.setValueAtTime(0.0001, t0);
+                        g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+                        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+                        osc.connect(g);
+                        g.connect(dest || master);
+                        osc.start(t0);
+                        osc.stop(t0 + dur + 0.03);
+                    }
+
+                    /** 相对当前时间播放（delay 单位：秒） */
+                    function tone(freq, dur, type, vol, delay, glideTo, dest) {
+                        if (!ctx) return;
+                        toneAt(
+                            freq,
+                            dur,
+                            type,
+                            vol,
+                            ctx.currentTime + (delay || 0),
+                            glideTo,
+                            dest,
+                        );
+                    }
+
+                    /** 噪声脉冲（脚步踩在草地上的轻响） */
+                    function noiseHit(freq, dur, vol) {
+                        if (!ctx || !noiseBuf) return;
+                        const t0 = ctx.currentTime;
+                        const src = ctx.createBufferSource();
+                        src.buffer = noiseBuf;
+                        const bp = ctx.createBiquadFilter();
+                        bp.type = "bandpass";
+                        bp.frequency.value = freq;
+                        bp.Q.value = 1.1;
+                        const g = ctx.createGain();
+                        g.gain.setValueAtTime(0.0001, t0);
+                        g.gain.exponentialRampToValueAtTime(vol, t0 + 0.005);
+                        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+                        src.connect(bp);
+                        bp.connect(g);
+                        g.connect(master);
+                        src.start(t0);
+                        src.stop(t0 + dur + 0.02);
+                    }
+
+                    /* ---------- 对外音效接口 ---------- */
+
+                    /** 轻脚步：噪声 + 极轻的低频，左右脚音高略有差异 */
+                    let stepFlip = false;
+                    function step() {
+                        stepFlip = !stepFlip;
+                        noiseHit(stepFlip ? 900 : 1120, 0.07, 0.055);
+                        tone(stepFlip ? 150 : 178, 0.05, "sine", 0.035);
+                    }
+
+                    /** 开始探索的轻快小提示 */
+                    function start() {
+                        tone(523.25, 0.09, "square", 0.1, 0);
+                        tone(659.25, 0.09, "square", 0.1, 0.08);
+                        tone(783.99, 0.2, "square", 0.11, 0.16);
+                    }
+
+                    /** 触发对话：两段上行音 */
+                    function talk() {
+                        tone(659.25, 0.07, "square", 0.1, 0);
+                        tone(987.77, 0.1, "square", 0.085, 0.075);
+                    }
+
+                    /** 关闭对话：两段下行音 */
+                    function close() {
+                        tone(880.0, 0.07, "square", 0.09, 0);
+                        tone(587.33, 0.11, "square", 0.08, 0.07);
+                    }
+
+                    /** 抵达终点的彩蛋音效：上行琶音 + 明亮和弦 + 高音闪光 */
+                    function ending() {
+                        const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51];
+                        notes.forEach((f, i) =>
+                            tone(f, 0.22, "triangle", 0.12, i * 0.13),
+                        );
+                        // 收尾和弦
+                        [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+                            tone(f, 1.5, "triangle", 0.075, 0.72 + i * 0.015);
+                        });
+                        // 高音闪光
+                        [1567.98, 2093.0].forEach((f, i) =>
+                            tone(f, 0.5, "square", 0.035, 1.25 + i * 0.12),
+                        );
+                    }
+
+                    /* ---------- 背景音乐：4 小节循环的柔和八音盒 ---------- */
+                    const BGM_PROG = [
+                        { bass: 130.81, arp: [261.63, 329.63, 392.0, 523.25] }, // C
+                        { bass: 110.0, arp: [220.0, 261.63, 329.63, 440.0] }, // Am
+                        { bass: 87.31, arp: [174.61, 220.0, 261.63, 349.23] }, // F
+                        { bass: 98.0, arp: [196.0, 246.94, 293.66, 392.0] }, // G
+                    ];
+                    const BAR_TIME = 1.04; // 每小节时长
+                    const LOOP_TIME = BAR_TIME * BGM_PROG.length;
+
+                    function scheduleLoop() {
+                        if (!ctx || !bgmOn) return;
+                        const t0 = ctx.currentTime + 0.08;
+                        BGM_PROG.forEach((bar, bi) => {
+                            const bt = t0 + bi * BAR_TIME;
+                            // 低音铺底
+                            toneAt(
+                                bar.bass,
+                                BAR_TIME * 0.9,
+                                "triangle",
+                                0.05,
+                                bt,
+                                null,
+                                bgmGain,
+                            );
+                            // 琶音旋律
+                            bar.arp.forEach((f, i) => {
+                                toneAt(
+                                    f,
+                                    0.5,
+                                    "triangle",
+                                    0.032,
+                                    bt + i * (BAR_TIME / 4),
+                                    null,
+                                    bgmGain,
+                                );
+                            });
+                        });
+                        bgmTimer = setTimeout(scheduleLoop, LOOP_TIME * 1000);
+                    }
+
+                    function bgmToggle() {
+                        if (!ctx) return false;
+                        bgmOn = !bgmOn;
+                        if (bgmOn) {
+                            bgmGain.gain.setTargetAtTime(
+                                1,
+                                ctx.currentTime,
+                                0.4,
+                            );
+                            scheduleLoop();
+                        } else {
+                            bgmGain.gain.setTargetAtTime(
+                                0,
+                                ctx.currentTime,
+                                0.3,
+                            );
+                            clearTimeout(bgmTimer);
+                            bgmTimer = null;
+                        }
+                        return bgmOn;
+                    }
+
+                    /** 对话时压低背景音乐音量 */
+                    function bgmDuck(ducked) {
+                        if (!ctx || !bgmOn) return;
+                        bgmGain.gain.setTargetAtTime(
+                            ducked ? 0.34 : 1,
+                            ctx.currentTime,
+                            0.15,
+                        );
+                    }
+
+                    function ready() {
+                        if (!ctx) return;
+                        if (!bgmGain) {
+                            bgmGain = ctx.createGain();
+                            bgmGain.gain.value = 0;
+                            bgmGain.connect(master);
+                        }
+                    }
+
+                    /** 浏览器切页后可能挂起音频，任何按键都顺手唤醒一次 */
+                    function resume() {
+                        if (ctx && ctx.state === "suspended") ctx.resume();
+                    }
+
+                    return {
+                        init,
+                        ready,
+                        resume,
+                        step,
+                        start,
+                        talk,
+                        close,
+                        ending,
+                        bgmToggle,
+                        bgmDuck,
+                        get bgmOn() {
+                            return bgmOn;
+                        },
+                        get ok() {
+                            return !!ctx;
+                        },
+                    };
+                })();
+
+                /* =====================================================================
+   4. 剧情文案与 NPC 数据
+   ===================================================================== */
+                /* 各路 NPC 的对话文案：
+     第 1 位（组织部部长）走 Galgame 问答，不使用本数组；
+     第 2~4 位分别围绕自己展板上的活动（辩论赛 / 乒乓球比赛 / 羽毛球比赛）展开；
+     第 5 位是招新寄语。
+   部门介绍的官方原文完整收录在部长的问答里（问题 1~5）。 */
+                const STORIES = [
+                    null,
+                    "这场辩论赛，正反双方八位辩手，加上计时员、评委、主持人，谁站哪、谁先发言、几点换场，都得提前排定。人员调度、现场分工、流程确认，就是我们组织部的活儿——环节钉死了，台上才能放开辩。",
+                    "乒乓球赛最考验统筹：赛程怎么排、场地分几块、裁判和记分员怎么轮换、选手什么时候检录，一环扣一环。我们负责把这些理清楚，再守住签到考勤，保证每一场都按时开打。",
+                    "羽毛球赛人多、场次密，最怕临时变动。谁来不了、场地要调整，都得有人在中间协调：对内盯排班，对外跟各学院和社团对接。赛后还要把台账理清、资料归档——比赛结束，我们才收尾。",
+                    "我们不要求你有经验、有技术、有能力，只要求你踏实细心、有责任心、愿意学习、敢于沟通。在这里你可以锻炼统筹能力、沟通能力、做事能力，收获成长与伙伴。",
+                ];
+
+                /* ---------------- Galgame 问答：组织部部长 ----------------
+   文案严格照搬，未作任何措辞修改。前 5 问为核心介绍，后 3 问为拓展问题。 */
+                const GAL_GREETING =
+                    "你好！想了解社联组织部吗？你可以问问我问题。";
+                const GAL_OPTIONS = [
+                    {
+                        q: "社联组织部到底是做什么的？它在社联里是什么定位？",
+                        a: "社联组织部是学生社团联合会的核心职能部门，是衔接社联与全校各学生社团的重要纽带，主要负责社联内部组织建设、社团规范化管理、人事统筹、活动保障工作，是保障全校社团体系平稳有序运转的关键部门。",
+                    },
+                    {
+                        q: "组织部和其他部门有什么不一样？你们的工作重心是什么？",
+                        a: "不同于侧重节目策划、文艺展演的部门，组织部的工作核心聚焦于管人、管组织、管流程，以严谨、规范、务实的风格开展事务。对内负责社联队伍建设，规整工作秩序，夯实组织基础；对外统筹规范各社团的日常运行与管理，督促社团落实规章制度，助力社团健康有序发展。",
+                    },
+                    {
+                        q: "在大型活动里，组织部会承担哪些任务？",
+                        a: "在活动保障方面，部门负责社联大型社团活动的落地统筹，涵盖活动的人员调度、现场分工，同时整理活动台账、梳理活动资料，完成记录汇总与归档，保障每一场大型活动井然有序开展。",
+                    },
+                    {
+                        q: "组织部怎么和各个社团打交道，起到桥梁作用？",
+                        a: "在沟通对接方面，组织部承担双向沟通的重要职责：搭建社联与各社团的沟通桥梁，及时传达学校及社联的各项工作要求，主动收集社团在组织运行中遇到的问题，汇总反馈社团合理诉求，协调解决日常问题，拉近社联与社团的距离，维系全校社团生态稳定和谐。",
+                    },
+                    {
+                        q: "如果用一句话总结组织部，该怎么理解你们的角色？",
+                        a: "整体而言，社联组织部以细致严谨的工作态度、扎实稳妥的工作作风，统筹社团组织管理、保障活动有序开展、畅通双向沟通渠道，是社联高效运转、社团稳步发展的坚实后盾。",
+                    },
+                    {
+                        q: "加入组织部，需要有什么特长或者经验吗？",
+                        a: "不需要提前掌握很多技能。比起花哨的特长，我们更看重细心、责任心，还有踏实做事的态度。只要愿意学习、耐心对接，就很适合组织部。",
+                    },
+                    {
+                        q: "在组织部日常工作会不会很忙？",
+                        a: "工作节奏跟着社团活动周期走。大型活动期间任务会多一些，日常以材料整理、对接沟通为主。所有工作都会合理分配，大家分工协作。",
+                    },
+                    {
+                        q: "加入组织部之后，我能收获什么？",
+                        a: "你可以学习活动统筹、档案整理、沟通协调的能力，认识各个社团的负责人，和部门小伙伴一起配合完成大型活动，积累很实在的实践经验。\n（以及二课工作履历模块分）",
+                    },
+                ];
+
+                /** 第一位 NPC：组织部部长（男），触发 Galgame 问答；其余 NPC 沿路呈现分段剧情 */
+                const NPC_DATA = [
+                    {
+                        name: "组织部部长",
+                        x: 800,
+                        kind: "gal",
+                        hair: "short",
+                        acc: null,
+                        skin: "#ffd9b8",
+                        hairColor: "#3b3229",
+                        shirt: "#6fa8dc",
+                        sleeve: "#5488bb",
+                        pants: "#4a5568",
+                        shoe: "#333b48",
+                        badge: "#ffd98a",
+                    },
+                    {
+                        name: "小橙学长",
+                        x: 1560,
+                        hair: "short",
+                        acc: "cap",
+                        skin: "#ffdcbb",
+                        hairColor: "#4a3b2f",
+                        shirt: "#ffc48f",
+                        sleeve: "#e8a86f",
+                        pants: "#7a6a58",
+                        shoe: "#4d4136",
+                        badge: "#7ec8f0",
+                    },
+                    {
+                        name: "青柠学姐",
+                        x: 2320,
+                        hair: "long",
+                        acc: "glasses",
+                        skin: "#ffe6cf",
+                        hairColor: "#3f3428",
+                        shirt: "#c9e88f",
+                        sleeve: "#aed473",
+                        pants: "#7d8a6a",
+                        shoe: "#55603f",
+                        badge: "#f2a1b8",
+                    },
+                    {
+                        name: "阿绿学长",
+                        x: 3080,
+                        hair: "short",
+                        acc: null,
+                        skin: "#ffdcbb",
+                        hairColor: "#3a2f27",
+                        shirt: "#9fdcc4",
+                        sleeve: "#82c7ac",
+                        pants: "#5f7a72",
+                        shoe: "#3f544e",
+                        badge: "#ffcf7a",
+                    },
+                    {
+                        name: "暖阳学姐",
+                        x: 3840,
+                        hair: "long",
+                        acc: "bow",
+                        skin: "#ffe1c6",
+                        hairColor: "#6b4a35",
+                        shirt: "#ffd9a0",
+                        sleeve: "#efc384",
+                        pants: "#8a7a6a",
+                        shoe: "#5a4c40",
+                        badge: "#8fd3f4",
+                    },
+                ];
+
+                /** 玩家外观（白色校服 + 牛仔蓝） */
+                const PLAYER_SKIN_C = {
+                    skin: "#ffe1c6",
+                    hairColor: "#4b3a2c",
+                    shirt: "#ffffff",
+                    sleeve: "#e9eff8",
+                    pants: "#7d9bd6",
+                    shoe: "#4a5b7a",
+                    badge: "#8fd3f4",
+                    hair: "short",
+                    acc: null,
+                };
+
+                /* =====================================================================
+   5. 角色与景物绘制
+   ===================================================================== */
+
+                /* 走路动画：4 帧循环（站立帧 + 四帧走路）
+   角色为「侧向视角」：脸、刘海、鞋尖都朝前，远侧手脚在身后，走路时上半身略前倾，
+   所以左右行走时的朝向一眼可辨。
+   两条腿共用同一基准位置 LEG_X，靠「远腿加深 + 近腿压在远腿之上」交替前后关系：
+   近腿前迈时远腿后蹬，下一拍互换，左右行进方向都正确。 */
+                const LEG_X = 6;
+                const POSE_IDLE = {
+                    bob: 0,
+                    lean: 0,
+                    legNear: 0,
+                    legFar: 0,
+                    armNear: 0,
+                    armFar: 0,
+                    shoeNear: 0,
+                    shoeFar: 0,
+                };
+                const POSES_WALK = [
+                    {
+                        bob: 0,
+                        lean: 1,
+                        legNear: 2,
+                        legFar: -2,
+                        armNear: -1,
+                        armFar: 1,
+                        shoeNear: 0,
+                        shoeFar: -1,
+                    }, // 近腿前迈
+                    {
+                        bob: -1,
+                        lean: 1,
+                        legNear: 0,
+                        legFar: 0,
+                        armNear: 0,
+                        armFar: 0,
+                        shoeNear: 0,
+                        shoeFar: 0,
+                    }, // 双腿并拢
+                    {
+                        bob: 0,
+                        lean: 1,
+                        legNear: -2,
+                        legFar: 2,
+                        armNear: 1,
+                        armFar: -1,
+                        shoeNear: -1,
+                        shoeFar: 0,
+                    }, // 近腿后蹬
+                    {
+                        bob: -1,
+                        lean: 1,
+                        legNear: 0,
+                        legFar: 0,
+                        armNear: 0,
+                        armFar: 0,
+                        shoeNear: 0,
+                        shoeFar: 0,
+                    }, // 双腿并拢
+                ];
+
+                /**
+                 * 绘制像素小人（16 x 27 像素，朝向右侧绘制，facing=-1 时整体镜像）
+                 * @param {CanvasRenderingContext2D} g
+                 * @param {number} cx    人物水平中心
+                 * @param {number} feetY 脚底 y 坐标
+                 * @param {object} c     配色与造型配置
+                 * @param {object} pose  姿态
+                 * @param {number} facing 朝向：1 向右，-1 向左
+                 */
+                function drawCharacter(g, cx, feetY, c, pose, facing) {
+                    const CW = 16,
+                        CH = 27;
+                    const S = CHAR_SCALE; // 整体放大倍数
+                    const left = Math.round(cx - (CW * S) / 2);
+                    const top = Math.round(feetY - CH * S) + pose.bob * S;
+
+                    // 地面投影（不随身体起伏移动，随放大倍数一起变宽）
+                    g.fillStyle = "rgba(78, 112, 66, 0.15)";
+                    g.fillRect(
+                        Math.round(cx) - 6 * S,
+                        Math.round(feetY) - 2 * S,
+                        12 * S,
+                        2 * S,
+                    );
+                    g.fillRect(
+                        Math.round(cx) - 5 * S,
+                        Math.round(feetY) - 3 * S,
+                        10 * S,
+                        1 * S,
+                    );
+
+                    g.save();
+                    g.translate(left, top);
+                    if (facing < 0) {
+                        g.translate(CW * S, 0);
+                        g.scale(-1, 1);
+                    } // 以精灵中轴镜像翻转
+                    g.scale(S, S); // 放大到投影可读的尺寸
+
+                    const L = pose.lean || 0; // 行走时上半身前移 1 像素，形成前倾
+                    const hair = c.hairColor;
+                    const skinFar = shade(c.skin, -0.12);
+                    const shirtFar = shade(c.shirt, -0.18);
+                    const pantsFar = shade(c.pants, -0.24);
+                    const shoeFar = shade(c.shoe, -0.18);
+
+                    /* ---- 远侧（身后）肢体：先画，颜色加深；手臂大部分被躯干挡住，只露出身后一点 ---- */
+                    rect(g, 3 + pose.armFar, 11, 2, 6, shirtFar);
+                    rect(g, 3 + pose.armFar, 17, 2, 2, skinFar);
+                    rect(g, LEG_X + pose.legFar, 21, 3, 4, pantsFar);
+                    rect(
+                        g,
+                        LEG_X + pose.legFar - 1,
+                        25 + pose.shoeFar,
+                        1,
+                        1,
+                        shoeFar,
+                    ); // 脚跟
+                    rect(
+                        g,
+                        LEG_X + pose.legFar,
+                        25 + pose.shoeFar,
+                        4,
+                        2,
+                        shoeFar,
+                    ); // 鞋，脚尖朝前
+
+                    /* ---- 躯干 ---- */
+                    rect(g, 4 + L, 10, 8, 7, c.shirt);
+                    rect(g, 4 + L, 16, 8, 1, c.sleeve); // 下摆阴影
+                    rect(g, 6 + L, 10, 4, 1, c.sleeve); // 领口
+                    rect(g, 8 + L, 12, 2, 2, c.badge); // 胸前小徽章（偏前）
+                    rect(g, 4, 17, 8, 4, c.pants); // 裤腰（不随前倾移动）
+
+                    /* ---- 近侧（身前）肢体：压在远侧之上，颜色更亮 ---- */
+                    rect(g, LEG_X + pose.legNear, 21, 3, 4, c.pants);
+                    rect(
+                        g,
+                        LEG_X + pose.legNear - 1,
+                        25 + pose.shoeNear,
+                        1,
+                        1,
+                        c.shoe,
+                    );
+                    rect(
+                        g,
+                        LEG_X + pose.legNear,
+                        25 + pose.shoeNear,
+                        4,
+                        2,
+                        c.shoe,
+                    );
+                    rect(g, 11 + L + pose.armNear, 11, 2, 6, c.shirt);
+                    rect(g, 11 + L + pose.armNear, 17, 2, 2, c.skin);
+
+                    /* ---- 脖子与头 ---- */
+                    rect(g, 7 + L, 9, 2, 1, c.skin);
+                    rect(g, 4 + L, 1, 8, 8, c.skin); // 脸
+                    rect(g, 12 + L, 6, 1, 1, skinFar); // 鼻尖（向前突出）
+
+                    /* ---- 五官整体偏前，形成侧脸，朝向前方一目了然 ---- */
+                    rect(g, 7 + L, 5, 1, 2, "#3a3230"); // 远眼
+                    rect(g, 10 + L, 5, 1, 2, "#3a3230"); // 近眼
+                    rect(g, 11 + L, 7, 1, 1, "#f9b8c1"); // 近侧腮红
+                    rect(g, 8 + L, 7, 2, 1, "#c98a80"); // 嘴
+
+                    /* ---- 头发：后脑厚、刘海与发梢朝前 ---- */
+                    rect(g, 3 + L, 0, 10, 3, hair); // 头顶
+                    rect(g, 4 + L, 3, 8, 1, hair); // 刘海
+                    rect(g, 3 + L, 3, 1, 5, hair); // 后脑
+                    rect(g, 2 + L, 6, 2, 4, hair); // 脑后发束
+                    rect(g, 11 + L, 3, 2, 1, hair); // 前额发梢
+                    if (c.hair === "long")
+                        rect(g, 2 + L, 3, 2, 11, shade(hair, -0.08)); // 长发顺在身后
+
+                    /* ---- 配饰（全部朝前） ---- */
+                    if (c.acc === "cap") {
+                        rect(g, 3 + L, -1, 10, 2, "#6fa8dc");
+                        rect(g, 3 + L, 1, 10, 1, "#4d84b8");
+                        rect(g, 12 + L, 1, 3, 1, "#4d84b8"); // 帽檐
+                    }
+                    if (c.acc === "glasses") {
+                        rect(g, 6 + L, 4, 6, 1, "#5b6b7d");
+                        rect(g, 6 + L, 6, 6, 1, "#5b6b7d");
+                        rect(g, 6 + L, 5, 1, 1, "#5b6b7d");
+                        rect(g, 8 + L, 5, 1, 1, "#5b6b7d");
+                        rect(g, 9 + L, 5, 1, 1, "#5b6b7d");
+                        rect(g, 11 + L, 5, 1, 1, "#5b6b7d");
+                        rect(g, 7 + L, 5, 1, 1, "#dff0ff");
+                        rect(g, 10 + L, 5, 1, 1, "#dff0ff");
+                    }
+                    if (c.acc === "bow") {
+                        rect(g, 11 + L, -1, 3, 2, "#ff9db3");
+                        rect(g, 12 + L, -1, 1, 2, "#e8788f");
+                    }
+
+                    g.restore();
+                }
+
+                /** 未触达的 NPC 头顶的“!”气泡 */
+                function drawExclaim(g, cx, topY, t) {
+                    const S = 1.7;
+                    const bob = Math.round(Math.sin(t * 3.4) * 2);
+                    const w = 9,
+                        h = 12;
+                    g.save();
+                    g.translate(
+                        Math.round(cx - (w * S) / 2),
+                        Math.round(topY - (h + 4) * S) + bob,
+                    );
+                    g.scale(S, S);
+                    pxPanel(g, 0, 0, w, h, "#ffffff", "#4b4034");
+                    rect(g, 3, h, 1, 2, "#4b4034"); // 气泡小尾巴
+                    rect(g, 4, h, 2, 1, "#4b4034");
+                    rect(g, 4, 3, 2, 5, "#d4718c"); // “!”
+                    rect(g, 4, 9, 2, 2, "#d4718c");
+                    g.restore();
+                }
+
+                /* ---------------- 景物绘制（全部绘制到预渲染层上） ---------------- */
+
+                /** 杨树：细长的竖向树冠 + 笔直树干（校园行道树的标志性轮廓） */
+                function drawPoplar(g, x, baseY, s, rr) {
+                    const h = Math.round(74 * s); // 总高
+                    const trunkW = Math.max(2, Math.round(3 * s));
+                    const trunkH = Math.round(18 * s);
+                    const rx = Math.max(3, Math.round(7.5 * s)); // 树冠半宽
+                    const ry = Math.round((h - trunkH) / 2);
+
+                    // 树干
+                    rect(
+                        g,
+                        x - trunkW / 2,
+                        baseY - trunkH,
+                        trunkW,
+                        trunkH,
+                        "#b9a98d",
+                    );
+                    rect(
+                        g,
+                        x - trunkW / 2,
+                        baseY - trunkH,
+                        1,
+                        trunkH,
+                        "#9c8c70",
+                    );
+
+                    // 树冠：细长竖向椭圆（逐行扫描，天然像素阶梯）
+                    const cy = baseY - trunkH - ry;
+                    const rows = [];
+                    for (let dy = -ry; dy <= ry; dy++) {
+                        const w = Math.round(
+                            rx *
+                                Math.sqrt(
+                                    Math.max(0, 1 - (dy * dy) / (ry * ry + 1)),
+                                ),
+                        );
+                        rows.push([dy, w]);
+                    }
+                    g.fillStyle = "#6fae56";
+                    for (const [dy, w] of rows)
+                        g.fillRect(
+                            Math.round(x - w),
+                            Math.round(cy + dy),
+                            w * 2 + 1,
+                            1,
+                        );
+                    g.fillStyle = "#8ec973";
+                    for (const [dy, w] of rows)
+                        g.fillRect(
+                            Math.round(x - w),
+                            Math.round(cy + dy),
+                            Math.max(1, Math.round(w * 1.05)),
+                            1,
+                        );
+                    g.fillStyle = "#a8dc8d";
+                    for (const [dy, w] of rows) {
+                        if (dy < -ry * 0.15)
+                            g.fillRect(
+                                Math.round(x - w),
+                                Math.round(cy + dy),
+                                Math.max(1, Math.round(w * 0.55)),
+                                1,
+                            );
+                    }
+                    // 叶簇碎点
+                    for (let i = 0; i < 22 * s; i++) {
+                        const a = rr() * Math.PI * 2,
+                            r = Math.sqrt(rr());
+                        rect(
+                            g,
+                            x + Math.cos(a) * r * rx,
+                            cy + Math.sin(a) * r * ry,
+                            2,
+                            2,
+                            rr() > 0.5 ? "#b6e59c" : "#609b49",
+                        );
+                    }
+                    // 树影
+                    g.fillStyle = "rgba(70, 105, 58, .15)";
+                    g.fillRect(x - rx - 2, baseY - 1, rx * 2 + 4, 2);
+                }
+
+                /** 灌木丛 */
+                function drawBush(g, x, baseY, s, rr) {
+                    const w = Math.round(22 * s),
+                        h = Math.round(13 * s);
+                    pixelCircle(g, x, baseY - h * 0.5, h * 0.52, "#79c268");
+                    pixelCircle(
+                        g,
+                        x - w * 0.3,
+                        baseY - h * 0.42,
+                        h * 0.42,
+                        "#8ed177",
+                    );
+                    pixelCircle(
+                        g,
+                        x + w * 0.3,
+                        baseY - h * 0.42,
+                        h * 0.42,
+                        "#8ed177",
+                    );
+                    for (let i = 0; i < 6 * s; i++) {
+                        rect(
+                            g,
+                            x - w / 2 + rr() * w,
+                            baseY - h + rr() * h * 0.7,
+                            2,
+                            2,
+                            "#b6e59c",
+                        );
+                    }
+                    g.fillStyle = "rgba(70, 105, 58, .14)";
+                    g.fillRect(x - w / 2, baseY - 1, w, 2);
+                }
+
+                /** 小花（颜色随机取一种柔和色） */
+                const FLOWER_COLORS = [
+                    "#ffb3c6",
+                    "#ffe08a",
+                    "#ffffff",
+                    "#cbb2f0",
+                    "#ffcfa0",
+                ];
+                function drawFlower(g, x, y, s, rr) {
+                    const col =
+                        FLOWER_COLORS[Math.floor(rr() * FLOWER_COLORS.length)];
+                    const stem = Math.max(1, Math.round(s * 0.6));
+                    rect(g, x, y + 3 * s, stem, 4 * s, "#6cb95a"); // 花茎
+                    rect(g, x - 2 * s, y, 3 * s, 3 * s, col); // 花瓣
+                    rect(g, x + 1 * s, y + 1 * s, 2 * s, 2 * s, col);
+                    rect(g, x, y + 1 * s, 1, 1, "#fff6c9"); // 花心
+                }
+                /** 草丛 */
+                function drawGrassTuft(g, x, y, s) {
+                    const w = Math.max(1, Math.round(s));
+                    rect(g, x, y, w, 3 * s, "#7cc464");
+                    rect(g, x + 2 * s, y - 1, w, 3 * s + 1, "#8ed177");
+                    rect(g, x + 4 * s, y, w, 3 * s, "#7cc464");
+                }
+
+                /** 路灯 */
+                function drawLamp(g, x, baseY) {
+                    rect(g, x - 1, baseY - 42, 3, 42, "#8b93a0");
+                    rect(g, x - 1, baseY - 42, 1, 42, "#6f7885");
+                    rect(g, x - 4, baseY - 48, 9, 7, "#ffd98a");
+                    rect(g, x - 4, baseY - 48, 9, 2, "#fff0bd");
+                    rect(g, x - 5, baseY - 50, 11, 2, "#6f7885");
+                    rect(g, x - 3, baseY - 41, 7, 1, "#6f7885");
+                    g.fillStyle = "rgba(255, 226, 150, .16)";
+                    g.fillRect(x - 10, baseY - 44, 21, 44);
+                }
+
+                /** 长椅 */
+                function drawBench(g, x, baseY) {
+                    const w = 30,
+                        left = x - w / 2;
+                    // 靠背
+                    rect(g, left, baseY - 17, w, 3, "#d3a878");
+                    rect(g, left, baseY - 17, w, 1, "#e3bd90");
+                    rect(g, left + 2, baseY - 13, 2, 3, "#b98d61");
+                    rect(g, left + w - 4, baseY - 13, 2, 3, "#b98d61");
+                    // 坐板
+                    rect(g, left, baseY - 9, w, 3, "#e3bd90");
+                    rect(g, left, baseY - 6, w, 1, "#b98d61");
+                    // 椅腿
+                    rect(g, left + 2, baseY - 5, 3, 5, "#8a6b4a");
+                    rect(g, left + w - 5, baseY - 5, 3, 5, "#8a6b4a");
+                    // 投影
+                    g.fillStyle = "rgba(70, 105, 58, .15)";
+                    g.fillRect(left, baseY - 1, w, 2);
+                }
+
+                /** 木质指示牌（起点用） */
+                /** 木质指示牌（起点用）——牌面留白，文字由 DOM 标签呈现（见 buildTags） */
+                function drawSign(g, x, baseY) {
+                    rect(g, x - 2, baseY - 34, 4, 34, "#a9784f");
+                    rect(g, x - 2, baseY - 34, 1, 34, "#8d6141");
+                    pxPanel(
+                        g,
+                        x - 16,
+                        baseY - 52,
+                        32,
+                        20,
+                        "#fff3d0",
+                        "#a9784f",
+                    );
+                    // 牌面内框，给文字留出位置
+                    rect(g, x - 13, baseY - 49, 26, 14, "#fdf7e4");
+                    g.fillStyle = "rgba(70, 105, 58, .16)";
+                    g.fillRect(x - 8, baseY - 2, 16, 2);
+                }
+
+                /** 终点拱门（欢迎小站） */
+                function drawArch(g, x, baseY) {
+                    const half = 74;
+                    // 立柱
+                    [-half, half].forEach((dx) => {
+                        rect(g, x + dx - 5, baseY - 128, 10, 128, "#d3a878");
+                        rect(g, x + dx - 5, baseY - 128, 3, 128, "#b98d61");
+                        rect(g, x + dx - 7, baseY - 5, 14, 5, "#b98d61");
+                        rect(g, x + dx - 7, baseY - 132, 14, 5, "#e3bd90");
+                    });
+                    // 横幅
+                    pxPanel(
+                        g,
+                        x - half - 12,
+                        baseY - 160,
+                        (half + 12) * 2,
+                        30,
+                        "#fff3d0",
+                        "#d3a878",
+                    );
+                    rect(
+                        g,
+                        x - half - 12,
+                        baseY - 160,
+                        (half + 12) * 2,
+                        4,
+                        "#ffe6b8",
+                    );
+                    // 横幅正中留出浅色底，供「组 织 部」三个字使用（文字由 DOM 标签呈现，见 buildTags）
+                    rect(g, x - 68, baseY - 155, 136, 21, "#fffaea");
+                    // 小彩旗
+                    for (let i = 0; i < 8; i++) {
+                        const fx = x - half + 6 + i * 18;
+                        const col = [
+                            "#8fd3f4",
+                            "#ffd98a",
+                            "#c9e88f",
+                            "#ffb3c6",
+                        ][i % 4];
+                        rect(g, fx, baseY - 130, 2, 8, "#c9a86a");
+                        rect(g, fx + 2, baseY - 130, 8, 5, col);
+                    }
+                    // 地面投影
+                    g.fillStyle = "rgba(70, 105, 58, .16)";
+                    g.fillRect(x - half - 8, baseY - 2, half * 2 + 16, 2);
+                }
+
+                /* =====================================================================
+   6. 场景预渲染
+   把「草地」和「装饰物」一次性画进离屏画布，运行时只做一次贴图，保证流畅
+   ===================================================================== */
+
+                /** 生成柔软的云朵精灵（像素方块拼成） */
+                const CLOUD_ROWS = [
+                    ".....111.....",
+                    "...1111111...",
+                    "..111111111..",
+                    ".11111111111.",
+                    "1111111111111",
+                    "2222222222222",
+                ];
+                function makeCloudSprite(s) {
+                    const cvs = document.createElement("canvas");
+                    cvs.width = Math.round(13 * s);
+                    cvs.height = Math.round(6 * s);
+                    const g = cvs.getContext("2d");
+                    for (let ry = 0; ry < CLOUD_ROWS.length; ry++) {
+                        const row = CLOUD_ROWS[ry];
+                        for (let rx = 0; rx < row.length; rx++) {
+                            const ch = row[rx];
+                            if (ch === ".") continue;
+                            g.fillStyle = ch === "1" ? "#ffffff" : "#e2f0fc";
+                            g.fillRect(
+                                Math.round(rx * s),
+                                Math.round(ry * s),
+                                Math.ceil(s),
+                                Math.ceil(s),
+                            );
+                        }
+                    }
+                    return cvs;
+                }
+
+                const GROUND_TOP = HORIZON; // 草地层在屏幕上的起始 y
+                const SCENERY_TOP = 110; // 装饰物层在屏幕上的起始 y（需容纳终点拱门与高树）
+                const SCENE_SCALE = 2; // 景物放大倍数（必须取整数倍，否则像素边缘会被抗锯齿糊掉）
+
+                let groundCanvas = null; // 草地 + 路面 + 花草纹理
+                let sceneryCanvas = null; // 树、灌木、路灯、长椅、指示牌、终点拱门
+
+                /** 以 (x, baseY) 为基点、按 s 倍缩放绘制景物（景物函数一律按基点相对坐标作画） */
+                function atBase(g, x, baseY, s, drawFn) {
+                    g.save();
+                    g.translate(x, baseY);
+                    g.scale(s, s);
+                    drawFn(g, 0, 0);
+                    g.restore();
+                }
+
+                /** 预渲染草地层 */
+                function buildGround() {
+                    const cvs = document.createElement("canvas");
+                    cvs.width = WORLD_W;
+                    cvs.height = VH - GROUND_TOP; // 132 像素高
+                    const g = cvs.getContext("2d");
+                    const H = cvs.height;
+                    const rr = mulberry32(20240501);
+                    const yl = (screenY) => screenY - GROUND_TOP; // 屏幕 y → 本层局部 y
+
+                    // 远→近 草地分层（营造纵深）
+                    rect(
+                        g,
+                        0,
+                        yl(HORIZON),
+                        WORLD_W,
+                        yl(252) - yl(HORIZON),
+                        "#bce698",
+                    );
+                    rect(g, 0, yl(252), WORLD_W, yl(298) - yl(252), "#a7dc8d");
+                    // 灰色人行道
+                    rect(g, 0, yl(298), WORLD_W, yl(342) - yl(298), "#d2d2cc");
+                    rect(g, 0, yl(298), WORLD_W, 2, "#bcbcb6"); // 道牙
+                    rect(g, 0, yl(340), WORLD_W, 2, "#c4c4be");
+                    // 人行道砖缝
+                    for (let x = 0; x < WORLD_W; x += 26)
+                        rect(g, x, yl(300), 1, yl(340) - yl(300), "#c6c6c0");
+                    rect(g, 0, yl(319), WORLD_W, 1, "#c6c6c0");
+                    // 近景草地
+                    rect(g, 0, yl(342), WORLD_W, H - yl(342), "#93cf7d");
+
+                    // 草地细腻纹理（小横点，营造像素草皮质感）
+                    for (let i = 0; i < 4200; i++) {
+                        const x = rr() * WORLD_W;
+                        const sy = HORIZON + rr() * (VH - HORIZON); // 屏幕 y，用于判断所在层次
+                        let col;
+                        if (sy < 252) col = rr() > 0.5 ? "#c9eca6" : "#b0e093";
+                        else if (sy < 298)
+                            col = rr() > 0.5 ? "#b4e59c" : "#98d17f";
+                        else if (sy < 342)
+                            col = rr() > 0.5 ? "#e2e2dc" : "#c2c2bc";
+                        else col = rr() > 0.5 ? "#9ed987" : "#85c46f";
+                        rect(
+                            g,
+                            x,
+                            yl(sy),
+                            2 + Math.round(rr() * 2),
+                            1 + Math.round(rr()),
+                            col,
+                        );
+                    }
+                    // 草叶簇与小花（用整数倍放大，和放大的角色保持同样的像素颗粒感）
+                    const FLORA = 2;
+                    for (let x = 0; x < WORLD_W; x += 20 + rr() * 32) {
+                        drawGrassTuft(g, x, yl(250 + rr() * 40), FLORA);
+                        drawGrassTuft(g, x + 8, yl(346 + rr() * 8), FLORA);
+                    }
+                    for (let x = 40; x < WORLD_W; x += 60 + rr() * 110) {
+                        drawFlower(g, x, yl(286 + rr() * 6), FLORA, rr);
+                        drawFlower(g, x + 26, yl(346 + rr() * 8), FLORA, rr);
+                        if (rr() > 0.55)
+                            drawFlower(
+                                g,
+                                x + 76,
+                                yl(262 + rr() * 24),
+                                FLORA,
+                                rr,
+                            );
+                        if (rr() > 0.6)
+                            drawFlower(
+                                g,
+                                x + 130,
+                                yl(288 + rr() * 8),
+                                FLORA,
+                                rr,
+                            );
+                    }
+                    // 人行道上的细碎颗粒
+                    for (let i = 0; i < 760; i++) {
+                        const x = rr() * WORLD_W,
+                            sy = 304 + rr() * 32;
+                        rect(
+                            g,
+                            x,
+                            yl(sy),
+                            3,
+                            1 + Math.round(rr()),
+                            rr() > 0.5 ? "#c8c8c2" : "#e6e6e0",
+                        );
+                    }
+
+                    groundCanvas = cvs;
+                }
+
+                /** 预渲染装饰物层 */
+                function buildScenery() {
+                    const cvs = document.createElement("canvas");
+                    cvs.width = WORLD_W;
+                    cvs.height = VH - SCENERY_TOP;
+                    const g = cvs.getContext("2d");
+                    g.translate(0, -SCENERY_TOP); // 之后按屏幕坐标作画即可
+                    const rr = mulberry32(778899);
+
+                    // NPC 附近留白，避免装饰物遮挡人物
+                    const nearNpc = (x, pad) =>
+                        NPC_DATA.some((n) => Math.abs(n.x - x) < pad);
+
+                    // ---- 成排杨树（统一 2 倍整数缩放，保持像素硬边） ----
+                    for (
+                        let x = 150;
+                        x < WORLD_W - 260;
+                        x += 230 + rr() * 140
+                    ) {
+                        if (nearNpc(x, 110)) continue;
+                        atBase(g, x, 292, SCENE_SCALE, (gg, ox, oy) =>
+                            drawPoplar(gg, ox, oy, 1, rr),
+                        );
+                    }
+                    // ---- 灌木 ----
+                    for (
+                        let x = 220;
+                        x < WORLD_W - 200;
+                        x += 160 + rr() * 110
+                    ) {
+                        if (nearNpc(x, 92)) continue;
+                        atBase(g, x, 296, SCENE_SCALE, (gg, ox, oy) =>
+                            drawBush(gg, ox, oy, 1, rr),
+                        );
+                    }
+                    // ---- 路灯 ----
+                    for (
+                        let x = 520;
+                        x < WORLD_W - 220;
+                        x += 520 + rr() * 160
+                    ) {
+                        if (nearNpc(x, 120)) continue;
+                        atBase(g, x, 300, SCENE_SCALE, drawLamp);
+                    }
+                    // ---- 长椅 ----
+                    for (
+                        let x = 980;
+                        x < WORLD_W - 300;
+                        x += 880 + rr() * 260
+                    ) {
+                        if (nearNpc(x, 130)) continue;
+                        atBase(g, x, 300, SCENE_SCALE, drawBench);
+                    }
+                    // ---- 起点指示牌 ----
+                    atBase(g, 96, 300, SCENE_SCALE, drawSign);
+                    // ---- 终点拱门（本身已足够高，保持原尺寸） ----
+                    atBase(g, 4420, 302, 1, drawArch);
+
+                    sceneryCanvas = cvs;
+                }
+
+                /* =====================================================================
+   6.5 三层视差背景（复刻黑龙江八一农垦大学）
+   —— 远景层：松嫩平原上的校园航拍全景（可无缝横向平铺，视差最慢）
+   —— 中景层：中距离林带与低矮建筑（可平铺，视差居中）
+   —— 地标：前段「拱门主教学楼」、后段「环湖图书馆」（随推进依次切换）
+   ===================================================================== */
+                const PAR_FAR = 0.22; // 远景视差系数（越小越慢）
+                const PAR_MID = 0.62; // 中景视差系数
+                const FAR_W = 1600,
+                    FAR_H = 120,
+                    FAR_TOP = HORIZON - FAR_H;
+                const MID_W = 1400,
+                    MID_H = 130,
+                    MID_TOP = HORIZON - MID_H;
+
+                let farCanvas = null,
+                    midCanvas = null;
+                let archCanvas = null,
+                    libraryCanvas = null,
+                    duskCanvas = null;
+
+                /** 带子顶部做一段「抖色」过渡，让远景层上沿自然化进天空 */
+                function ditherTop(g, W, rows, color) {
+                    for (let y = 0; y < rows; y++) {
+                        const density = (y + 1) / rows;
+                        for (let x = 0; x < W; x += 2) {
+                            if (((x >> 1) + y) % 2 !== 0 && density < 0.72)
+                                continue;
+                            g.globalAlpha = Math.min(1, density * 1.35);
+                            g.fillStyle = color;
+                            g.fillRect(x, y, 2, 1);
+                        }
+                    }
+                    g.globalAlpha = 1;
+                }
+
+                /** 在平铺带里画一个元素：靠近两端时补画一份，保证横向无缝 */
+                function wrapped(x, W, fn) {
+                    fn(x);
+                    if (x < 140) fn(x + W);
+                    if (x > W - 140) fn(x - W);
+                }
+
+                /** 远景层：辽阔平原 + 薄雾 + 成片浅绿树林 + 低矮建筑群轮廓（无人物） */
+                function buildFarStrip() {
+                    const cvs = document.createElement("canvas");
+                    cvs.width = FAR_W;
+                    cvs.height = FAR_H;
+                    const g = cvs.getContext("2d");
+                    const rr = mulberry32(90210);
+
+                    // 平原：越接近地平线越沉一点，形成辽阔感
+                    rect(g, 0, 20, FAR_W, FAR_H - 20, "#dcecc9");
+                    rect(g, 0, 38, FAR_W, 14, "#d3e6bd");
+                    rect(g, 0, 56, FAR_W, FAR_H - 56, "#c9dfb1");
+                    ditherTop(g, FAR_W, 20, "#e6f2e6");
+
+                    // 远处成片浅绿树林
+                    for (let i = 0; i < 30; i++) {
+                        const cx = rr() * FAR_W,
+                            cy = 42 + rr() * 18,
+                            w = 50 + rr() * 110;
+                        const tone = rr() > 0.5 ? "#bad9a1" : "#b0d299";
+                        wrapped(cx, FAR_W, (x) => {
+                            for (let dx = -w / 2; dx < w / 2; dx += 5) {
+                                pixelCircle(
+                                    g,
+                                    x + dx,
+                                    cy + Math.sin(dx * 0.22) * 2,
+                                    4 + rr() * 2,
+                                    tone,
+                                );
+                            }
+                        });
+                    }
+
+                    // 低矮建筑群轮廓
+                    for (let i = 0; i < 20; i++) {
+                        const cx = rr() * FAR_W,
+                            w = 26 + rr() * 46,
+                            h = 8 + rr() * 13,
+                            top = 62 - h + rr() * 12;
+                        wrapped(cx, FAR_W, (x) => {
+                            rect(g, x, top, w, h, "#ccd8de");
+                            rect(g, x, top, w, 3, "#bcc9d1");
+                            if (w > 40)
+                                rect(
+                                    g,
+                                    x + w * 0.34,
+                                    top - 5,
+                                    w * 0.32,
+                                    5,
+                                    "#c4d0d8",
+                                );
+                            for (let k = 0; k < w / 12; k++)
+                                rect(
+                                    g,
+                                    x + 5 + k * 12,
+                                    top + 5,
+                                    4,
+                                    3,
+                                    "#dde6ea",
+                                );
+                        });
+                    }
+
+                    // 淡淡薄雾
+                    g.globalAlpha = 0.34;
+                    rect(g, 0, 34, FAR_W, 16, "#f2f8f4");
+                    g.globalAlpha = 0.2;
+                    rect(g, 0, 50, FAR_W, 10, "#f6fbf7");
+                    g.globalAlpha = 1;
+
+                    farCanvas = cvs;
+                }
+
+                /** 中景层：中距离杨树林带 + 低矮校舍 + 田垄（可平铺） */
+                function buildMidStrip() {
+                    const cvs = document.createElement("canvas");
+                    cvs.width = MID_W;
+                    cvs.height = MID_H;
+                    const g = cvs.getContext("2d");
+                    const rr = mulberry32(51770);
+                    const GY = 96; // 本层的地面线
+
+                    // 田野
+                    rect(g, 0, GY, MID_W, MID_H - GY, "#bcd8a4");
+                    rect(g, 0, GY, MID_W, 3, "#aacd92");
+                    for (let x = 0; x < MID_W; x += 26)
+                        rect(g, x, GY + 8, 12, MID_H - GY - 8, "#c6dfb0");
+                    ditherTop(g, MID_W, 30, "#dcecc9");
+
+                    // 低矮校舍
+                    for (let i = 0; i < 9; i++) {
+                        const cx = rr() * MID_W,
+                            w = 70 + rr() * 60,
+                            h = 26 + rr() * 14,
+                            top = GY - h;
+                        wrapped(cx, MID_W, (x) => {
+                            rect(g, x, top, w, h, "#e8e6dc");
+                            rect(g, x - 3, top - 5, w + 6, 6, "#9aa3a9");
+                            rect(g, x - 3, top - 5, w + 6, 2, "#b3bcc1");
+                            for (let k = 0; k < Math.floor(w / 18); k++)
+                                rect(
+                                    g,
+                                    x + 8 + k * 18,
+                                    top + 10,
+                                    10,
+                                    8,
+                                    "#adc9d8",
+                                );
+                        });
+                    }
+
+                    // 成排杨树（整数倍缩放）
+                    for (let x = 20; x < MID_W; x += 54 + rr() * 30) {
+                        if (rr() > 0.86) continue;
+                        atBase(g, x, GY + 4, 1, (gg, ox, oy) =>
+                            drawPoplar(gg, ox, oy, 1, rr),
+                        );
+                    }
+
+                    midCanvas = cvs;
+                }
+
+                /* ---------------- 中景地标一：拱门主教学楼 ---------------- */
+                const ARCH_X = 520; // 画布左边缘对应的世界坐标
+                const ARCH_W = 900,
+                    ARCH_H = 170;
+                function buildArchBuilding() {
+                    const cvs = document.createElement("canvas");
+                    cvs.width = ARCH_W;
+                    cvs.height = ARCH_H;
+                    const g = cvs.getContext("2d");
+                    const rr = mulberry32(20240901);
+                    const H = ARCH_H; // 画布底边 = 地平线
+
+                    // 楼前广场
+                    rect(g, 26, H - 18, ARCH_W - 52, 18, "#d9d9d3");
+                    rect(g, 26, H - 18, ARCH_W - 52, 2, "#c2c2bb");
+                    for (let x = 56; x < ARCH_W - 40; x += 46)
+                        rect(g, x, H - 16, 1, 14, "#c9c9c2");
+                    for (let i = 0; i < 110; i++)
+                        rect(
+                            g,
+                            34 + rr() * (ARCH_W - 68),
+                            H - 15 + rr() * 14,
+                            3,
+                            1,
+                            rr() > 0.5 ? "#cfcfc8" : "#e6e6e0",
+                        );
+
+                    // 广场两侧行道杨树（先画，让建筑压在上面形成前后层次）
+                    [64, 112, 158, 742, 788, 834].forEach((x) => {
+                        atBase(g, x, H - 20, 1, (gg, ox, oy) =>
+                            drawPoplar(gg, ox, oy, 1, rr),
+                        );
+                    });
+
+                    // 建筑主体
+                    const bx = 190,
+                        bw = 520;
+                    rect(g, bx, 50, bw, H - 18 - 50, "#f2ecdc"); // 米白外墙
+                    rect(g, bx, 50, bw, 2, "#fffdf4");
+                    rect(g, bx, H - 24, bw, 6, "#dbd4c0"); // 勒脚
+                    // 屋顶
+                    rect(g, bx - 14, 34, bw + 28, 18, "#8e939a");
+                    rect(g, bx - 14, 34, bw + 28, 3, "#a9aeb4");
+                    rect(g, bx - 14, 49, bw + 28, 3, "#767b83");
+                    rect(g, 396, 16, 108, 20, "#8e939a"); // 中央塔楼
+                    rect(g, 396, 16, 108, 3, "#a9aeb4");
+                    rect(g, 396, 33, 108, 3, "#767b83");
+                    // 窗户
+                    for (let row = 0; row < 3; row++) {
+                        const wy = 62 + row * 29;
+                        for (let x = bx + 20; x < bx + bw - 34; x += 34) {
+                            if (x > 384 && x < 516) continue; // 让开中央拱门
+                            rect(g, x, wy, 20, 17, "#a9cbe0");
+                            rect(g, x, wy, 20, 2, "#cbe4f2");
+                            rect(g, x + 9, wy, 1, 17, "#8fb0c4");
+                        }
+                    }
+                    // 标志性中央拱门
+                    const ax = 450,
+                        aTop = 78,
+                        aHalf = 52,
+                        aH = H - 20 - aTop;
+                    for (let dy = 0; dy < aH; dy++) {
+                        let half = aHalf;
+                        if (dy < 32) {
+                            const t = dy / 32;
+                            half =
+                                aHalf *
+                                Math.sqrt(
+                                    Math.max(0.06, 1 - (1 - t) * (1 - t)),
+                                );
+                        }
+                        rect(
+                            g,
+                            ax - half,
+                            aTop + dy,
+                            half * 2,
+                            1,
+                            dy < 32 ? "#8d8478" : "#7b7368",
+                        );
+                    }
+                    rect(g, ax - 32, 132, 64, 18, "#b7a686"); // 拱洞里的暖光
+                    // 台阶
+                    rect(g, 380, H - 30, 140, 8, "#e7e1d1");
+                    rect(g, 370, H - 22, 160, 4, "#dcd6c6");
+                    // 楼前灌木
+                    [220, 300, 600, 680].forEach((x) =>
+                        atBase(g, x, H - 22, 1, (gg, ox, oy) =>
+                            drawBush(gg, ox, oy, 1, rr),
+                        ),
+                    );
+
+                    archCanvas = cvs;
+                }
+
+                /* ---------------- 中景地标二：环湖图书馆 ---------------- */
+                const LIB_X = 2260; // 画布左边缘对应的世界坐标
+                const LIB_W = 1900,
+                    LIB_H = 190;
+                function buildLibrary() {
+                    const cvs = document.createElement("canvas");
+                    cvs.width = LIB_W;
+                    cvs.height = LIB_H;
+                    const g = cvs.getContext("2d");
+                    const rr = mulberry32(66688);
+                    const H = LIB_H; // 画布底边 = 地平线
+                    const WATER = 118; // 湖面起始 y
+
+                    // 水面高度：两端收窄成湖湾，避免画布左右边缘出现生硬的垂直切口
+                    const waterTop = (x) => {
+                        const t = x / LIB_W;
+                        const k = Math.min(1, Math.min(t, 1 - t) / 0.085);
+                        return WATER + Math.round((1 - k) * 48);
+                    };
+
+                    // 对岸草地
+                    rect(g, 0, WATER - 6, LIB_W, 6, "#cfe0b6");
+
+                    // 湖面（逐列绘制，两端自然收窄）
+                    for (let x = 0; x < LIB_W; x += 2) {
+                        const top = waterTop(x);
+                        rect(g, x, top, 2, H - top, "#a8d2e6");
+                        rect(g, x, top, 2, 2, "#bcdcec");
+                    }
+
+                    // 建筑：弧形流线型屋顶 + 玻璃幕墙
+                    const bx = 560,
+                        bw = 680,
+                        x0 = bx,
+                        x1 = bx + bw;
+                    const roofBottom = 80;
+                    // 弧形屋顶：中间高、两端低
+                    for (let x = x0 - 26; x <= x1 + 26; x++) {
+                        const t = Math.max(
+                            0,
+                            Math.min(1, (x - (x0 - 26)) / (bw + 52)),
+                        );
+                        const top = Math.round(72 - 40 * Math.sin(Math.PI * t));
+                        rect(g, x, top, 1, roofBottom - top + 2, "#e9eef2");
+                        rect(g, x, top, 1, 3, "#cfd8de");
+                    }
+                    rect(g, x0 - 26, 68, bw + 52, 3, "#c4ced5");
+                    // 玻璃幕墙
+                    rect(g, x0, roofBottom, bw, WATER - roofBottom, "#d8ecf5");
+                    for (let x = x0 + 10; x < x1 - 6; x += 28)
+                        rect(
+                            g,
+                            x,
+                            roofBottom + 4,
+                            4,
+                            WATER - roofBottom - 8,
+                            "#9dc3d6",
+                        );
+                    rect(g, x0, roofBottom + 14, bw, 4, "#eaf6fb");
+                    rect(g, x0 - 6, WATER - 5, bw + 12, 5, "#bcc6c4"); // 基座
+                    // 倒影
+                    g.globalAlpha = 0.26;
+                    for (let x = x0; x <= x1; x += 3) {
+                        const t = (x - x0) / bw;
+                        const top = Math.round(72 - 40 * Math.sin(Math.PI * t));
+                        rect(
+                            g,
+                            x,
+                            WATER,
+                            3,
+                            Math.min(46, (WATER - top) * 0.62),
+                            "#8fb6cb",
+                        );
+                    }
+                    g.globalAlpha = 1;
+                    // 水面涟漪（只落在水面上）
+                    for (let i = 0; i < 90; i++) {
+                        const x = 120 + rr() * (LIB_W - 240);
+                        const top = waterTop(x) + 4;
+                        rect(
+                            g,
+                            x,
+                            top + rr() * Math.max(4, H - top - 8),
+                            20 + rr() * 90,
+                            1,
+                            "rgba(255,255,255,.34)",
+                        );
+                    }
+
+                    // 环湖步道（近岸）
+                    rect(g, 0, H - 14, LIB_W, 14, "#cdb590");
+                    rect(g, 0, H - 14, LIB_W, 2, "#e0cca9");
+                    for (let x = 4; x < LIB_W; x += 22)
+                        rect(g, x, H - 12, 1, 12, "#bda57f");
+
+                    // 垂柳（左岸与右岸）
+                    [330, 1420, 1660, 820].forEach((x) =>
+                        drawWillow(g, x, H - 16, rr),
+                    );
+                    // 岸边灌木
+                    [470, 1180, 1560].forEach((x) =>
+                        atBase(g, x, H - 16, 1, (gg, ox, oy) =>
+                            drawBush(gg, ox, oy, 1, rr),
+                        ),
+                    );
+
+                    // 两端各加一片杨树/垂柳林，把湖湾的收口和画布边缘挡住，进入湖区时不突兀
+                    const grove = [
+                        6,
+                        44,
+                        82,
+                        120,
+                        158,
+                        196,
+                        234,
+                        LIB_W - 240,
+                        LIB_W - 202,
+                        LIB_W - 164,
+                        LIB_W - 126,
+                        LIB_W - 88,
+                        LIB_W - 50,
+                        LIB_W - 12,
+                    ];
+                    grove.forEach((x, i) => {
+                        const tall = rr() > 0.42;
+                        if (rr() > 0.72) {
+                            drawWillow(g, x, H - 16, rr);
+                        } else {
+                            atBase(g, x, H - 15, tall ? 2 : 1, (gg, ox, oy) =>
+                                drawPoplar(gg, ox, oy, 1, rr),
+                            );
+                        }
+                    });
+                    // 树丛脚下的灌木，压住树根与湖岸的接缝
+                    [
+                        30,
+                        90,
+                        150,
+                        210,
+                        LIB_W - 220,
+                        LIB_W - 160,
+                        LIB_W - 100,
+                        LIB_W - 40,
+                    ].forEach((x) => {
+                        atBase(g, x, H - 13, 1, (gg, ox, oy) =>
+                            drawBush(gg, ox, oy, 1, rr),
+                        );
+                    });
+
+                    libraryCanvas = cvs;
+                }
+
+                /** 垂柳：树干 + 下垂的柳条 */
+                function drawWillow(g, x, baseY, rr) {
+                    const h = 54;
+                    rect(g, x - 2, baseY - h, 4, h, "#9c8a6a");
+                    rect(g, x - 2, baseY - h, 1, h, "#7f6f52");
+                    // 树冠
+                    pixelCircle(g, x, baseY - h - 4, 18, "#7cb85f");
+                    pixelCircle(g, x - 2, baseY - h - 8, 13, "#93cd76");
+                    // 下垂柳条
+                    for (let i = -5; i <= 5; i++) {
+                        const lx = x + i * 3.6;
+                        const len = 26 + ((i + 6) % 4) * 7;
+                        rect(
+                            g,
+                            lx,
+                            baseY - h + 2,
+                            1,
+                            len,
+                            i % 2 === 0 ? "#84c266" : "#6fb055",
+                        );
+                    }
+                    for (let i = 0; i < 16; i++) {
+                        rect(
+                            g,
+                            x - 16 + rr() * 32,
+                            baseY - h - 12 + rr() * 16,
+                            2,
+                            2,
+                            "#a5d98b",
+                        );
+                    }
+                }
+
+                /* ---------------- 结局画面：黄昏版环湖图书馆（全屏） ---------------- */
+                function buildDuskScene() {
+                    const cvs = document.createElement("canvas");
+                    cvs.width = VW;
+                    cvs.height = VH;
+                    const g = cvs.getContext("2d");
+                    const rr = mulberry32(13579);
+                    const HZ = 214; // 地平线
+
+                    // 黄昏天空：由淡紫过渡到橙黄
+                    const bands = [
+                        "#b9a6cc",
+                        "#c3a9c9",
+                        "#cfaec2",
+                        "#dcb4b6",
+                        "#e8bca6",
+                        "#f3c795",
+                        "#fbd393",
+                        "#ffdda2",
+                    ];
+                    const bh = Math.ceil(HZ / bands.length);
+                    for (let i = 0; i < bands.length; i++)
+                        rect(g, 0, i * bh, VW, bh, bands[i]);
+
+                    // 低悬的夕阳与光晕（落在画面右侧，不被建筑遮挡）
+                    const SUN_X = 492;
+                    for (let r = 66; r > 0; r -= 6) {
+                        g.globalAlpha = 0.05 + (66 - r) * 0.0016;
+                        pixelCircle(g, SUN_X, HZ - 24, r, "#ffe6b0");
+                    }
+                    g.globalAlpha = 1;
+                    pixelCircle(g, SUN_X, HZ - 24, 27, "#fff1c4");
+                    pixelCircle(g, SUN_X, HZ - 24, 20, "#ffe08a");
+
+                    // 远处树线剪影
+                    for (let x = 0; x < VW; x += 5) {
+                        const h =
+                            8 +
+                            Math.round(
+                                5 * Math.sin(x * 0.05) +
+                                    4 * Math.sin(x * 0.013),
+                            );
+                        rect(g, x, HZ - h, 5, h, "#9a8296");
+                    }
+                    // 湖面
+                    rect(g, 0, HZ, VW, VH - HZ, "#c99a86");
+                    for (let y = HZ; y < VH; y += 3) {
+                        const a = (y - HZ) / (VH - HZ);
+                        rect(
+                            g,
+                            0,
+                            y,
+                            VW,
+                            3,
+                            a < 0.35
+                                ? "#d8a68c"
+                                : a < 0.7
+                                  ? "#c08f83"
+                                  : "#a87d78",
+                        );
+                    }
+                    for (let i = 0; i < 120; i++) {
+                        rect(
+                            g,
+                            rr() * VW,
+                            HZ + 4 + rr() * (VH - HZ - 6),
+                            16 + rr() * 70,
+                            1,
+                            "rgba(255, 240, 210, .26)",
+                        );
+                    }
+
+                    // 图书馆剪影（弧形屋顶 + 亮着的窗）—— 偏画面左侧，给夕阳让出位置
+                    const bx = 36,
+                        bw = 388,
+                        x0 = bx,
+                        x1 = bx + bw,
+                        base = HZ - 2,
+                        top0 = 132;
+                    for (let x = x0 - 20; x <= x1 + 20; x++) {
+                        const t = Math.max(
+                            0,
+                            Math.min(1, (x - (x0 - 20)) / (bw + 40)),
+                        );
+                        const top = Math.round(
+                            top0 - 30 * Math.sin(Math.PI * t),
+                        );
+                        rect(g, x, top, 1, base - top, "#6f6270");
+                    }
+                    rect(g, x0, 164, bw, base - 164, "#5f5464");
+                    for (let x = x0 + 12; x < x1 - 8; x += 30) {
+                        for (let y = 170; y < base - 8; y += 18)
+                            rect(g, x, y, 12, 9, "#ffd98a");
+                    }
+                    for (let x = x0 + 12; x < x1 - 8; x += 30)
+                        rect(g, x, 164, 12, 6, "#e8b96a");
+                    // 屋顶被夕阳照到的一道暖边
+                    for (let x = x0 - 20; x <= x1 + 20; x++) {
+                        const t = Math.max(
+                            0,
+                            Math.min(1, (x - (x0 - 20)) / (bw + 40)),
+                        );
+                        rect(
+                            g,
+                            x,
+                            Math.round(top0 - 30 * Math.sin(Math.PI * t)),
+                            1,
+                            2,
+                            "#b08a90",
+                        );
+                    }
+
+                    // 建筑倒影（先压入水中，再用涟漪横向切开，读起来才像水面反射）
+                    g.globalAlpha = 0.32;
+                    for (let x = x0; x <= x1; x += 3) {
+                        const t = (x - x0) / bw;
+                        const top = Math.round(
+                            top0 - 30 * Math.sin(Math.PI * t),
+                        );
+                        rect(
+                            g,
+                            x,
+                            HZ,
+                            3,
+                            Math.min(46, (HZ - top) * 0.55),
+                            "#7a5f68",
+                        );
+                    }
+                    g.globalAlpha = 1;
+                    for (let y = HZ + 2; y < HZ + 56; y += 4) {
+                        rect(
+                            g,
+                            x0 - 10,
+                            y,
+                            bw + 20,
+                            2,
+                            "rgba(200, 150, 134, .75)",
+                        );
+                    }
+                    for (let i = 0; i < 26; i++) {
+                        rect(
+                            g,
+                            x0 - 20 + rr() * (bw + 40),
+                            HZ + 2 + rr() * 52,
+                            14 + rr() * 40,
+                            1,
+                            "rgba(255, 236, 210, .4)",
+                        );
+                    }
+
+                    // 夕阳在水面的光路
+                    for (let y = HZ; y < VH - 18; y += 2) {
+                        const w = 26 + (y - HZ) * 1.7;
+                        rect(
+                            g,
+                            SUN_X - w / 2 + (rr() - 0.5) * 12,
+                            y,
+                            w,
+                            1,
+                            "rgba(255, 228, 168, .55)",
+                        );
+                    }
+
+                    // 岸边垂柳剪影（左右两侧，框住画面）
+                    [18, 62, 556, 612].forEach((x, i) => {
+                        const h = 52 + i * 3,
+                            baseY = HZ + 2;
+                        rect(g, x - 2, baseY - h, 4, h, "#7a6a72");
+                        pixelCircle(g, x, baseY - h - 4, 17, "#6f6270");
+                        for (let k = -5; k <= 5; k++)
+                            rect(
+                                g,
+                                x + k * 3.5,
+                                baseY - h + 2,
+                                1,
+                                24 + ((k + 6) % 4) * 6,
+                                "#6a5e69",
+                            );
+                    });
+                    // 近岸暗色前景
+                    rect(g, 0, VH - 26, VW, 26, "#8a6f74");
+                    rect(g, 0, VH - 26, VW, 2, "#a2868a");
+                    rect(g, 0, VH - 26, VW, 1, "#b09397");
+                    // 柔和光晕
+                    for (let r = 160; r > 0; r -= 10) {
+                        g.globalAlpha = 0.018;
+                        pixelCircle(g, SUN_X, HZ - 20, r, "#ffdda2");
+                    }
+                    g.globalAlpha = 1;
+
+                    duskCanvas = cvs;
+                }
+
+                /* =====================================================================
+   7. 游戏状态
+   ===================================================================== */
+                const canvas = document.getElementById("game");
+                const g = canvas.getContext("2d");
+                g.imageSmoothingEnabled = false;
+
+                const uiEl = document.getElementById("ui");
+                const tagsEl = document.getElementById("tags");
+                const dialogEl = document.getElementById("dialog");
+                const dlgNameEl = document.getElementById("dlg-name");
+                const dlgTextEl = document.getElementById("dlg-text");
+                const hudEl = document.getElementById("hud");
+                const hudNumEl = document.getElementById("hud-num");
+                const hudPipsEl = document.getElementById("hud-pips");
+                const titleEl = document.getElementById("title");
+                const endingEl = document.getElementById("ending");
+
+                /** 玩家状态 */
+                const player = {
+                    x: 140,
+                    vx: 0,
+                    facing: 1,
+                    animT: 0,
+                    stepT: 0,
+                    moving: false,
+                };
+
+                /** 镜头 */
+                const camera = { x: 0 };
+
+                /** NPC 实例（运行时状态） */
+                const npcs = NPC_DATA.map((d, i) => ({
+                    ...d,
+                    index: i,
+                    seen: false,
+                    talked: false, // 是否已经聊完（聊完才揭示对应的活动展板）
+                    locked: false, // 已触发但玩家尚未走远
+                    facing: -1,
+                    breathe: Math.random() * Math.PI * 2,
+                }));
+
+                /** 云朵（会缓缓飘动） */
+                const CLOUD_SPAN = 2400;
+                const cloudSprites = [
+                    makeCloudSprite(1.6),
+                    makeCloudSprite(2.4),
+                    makeCloudSprite(3.4),
+                ];
+                const clouds = [];
+                (function () {
+                    const rr = mulberry32(31415);
+                    for (let i = 0; i < 11; i++) {
+                        const idx = i % 3;
+                        clouds.push({
+                            x: rr() * CLOUD_SPAN,
+                            y: 14 + rr() * 104,
+                            spd: 4 + rr() * 9,
+                            spr: cloudSprites[idx],
+                            depth: 0.26 + idx * 0.07,
+                        });
+                    }
+                })();
+
+                /** 全局状态机：title（标题）/ play（探索）/ dialog（对话）/ ending（结局） */
+                let state = "title";
+                let seenCount = 0;
+                let endingT = 0;
+                let clock = 0;
+                const keys = Object.create(null);
+
+                /* =====================================================================
+   8. 更新逻辑
+   ===================================================================== */
+                function update(dt) {
+                    clock += dt;
+
+                    galTick(dt); // Galgame 打字机（独立于游戏状态，切帧率也稳定）
+
+                    // 云朵永远在飘（标题页也有生气）
+                    for (const c of clouds) {
+                        c.x -= c.spd * dt;
+                        if (c.x < -60) c.x += CLOUD_SPAN;
+                    }
+
+                    // NPC 呼吸起伏与自动转头看向玩家
+                    for (const n of npcs) {
+                        n.breathe += dt;
+                        n.facing = player.x < n.x ? -1 : 1;
+                    }
+
+                    if (state === "ending") {
+                        endingT += dt;
+                        return;
+                    }
+                    if (state !== "play" && state !== "toast") return; // 提示气泡期间仍可继续走动
+
+                    /* ---------- 左右移动：带加速度与摩擦，手感顺滑 ---------- */
+                    let dir = 0;
+                    if (keys.ArrowLeft || keys.KeyA) dir -= 1;
+                    if (keys.ArrowRight || keys.KeyD) dir += 1;
+
+                    if (dir !== 0) {
+                        player.vx += dir * ACCEL * dt;
+                        player.vx = clamp(player.vx, -SPEED, SPEED);
+                        player.facing = dir > 0 ? 1 : -1;
+                    } else {
+                        // 松手后平滑减速
+                        const f = FRICTION * dt;
+                        if (Math.abs(player.vx) <= f) player.vx = 0;
+                        else player.vx -= Math.sign(player.vx) * f;
+                    }
+                    player.x = clamp(
+                        player.x + player.vx * dt,
+                        PLAYER_MIN_X,
+                        PLAYER_MAX_X,
+                    );
+
+                    /* ---------- 走路动画 + 脚步声 ---------- */
+                    player.moving = Math.abs(player.vx) > 12;
+                    if (player.moving) {
+                        player.animT += dt;
+                        player.stepT += dt;
+                        if (player.stepT >= STEP_INTERVAL) {
+                            player.stepT = 0;
+                            Sound.step();
+                        }
+                    } else {
+                        player.animT = 0;
+                        player.stepT = STEP_INTERVAL; // 停步后立刻就能踏出下一步
+                    }
+
+                    /* ---------- 镜头跟随（带死区，标准横版手感） ---------- */
+                    const camTarget = clamp(
+                        player.x - VW * 0.44,
+                        0,
+                        WORLD_W - VW,
+                    );
+                    camera.x += (camTarget - camera.x) * Math.min(1, dt * 9);
+                    // 防止玩家冲出画面
+                    if (player.x > camera.x + VW - 56)
+                        camera.x = player.x - (VW - 56);
+                    if (player.x < camera.x + 56) camera.x = player.x - 56;
+                    camera.x = clamp(camera.x, 0, WORLD_W - VW);
+
+                    /* ---------- 靠近 NPC 自动触发剧情（第一位部长进入 Galgame 问答） ---------- */
+                    for (const n of npcs) {
+                        const d = Math.abs(player.x - n.x);
+                        if (d < NPC_TRIGGER && !n.locked) {
+                            if (n.kind === "gal") openGal(n);
+                            else openDialog(n);
+                            return;
+                        }
+                        if (d > NPC_RELEASE) n.locked = false;
+                    }
+
+                    /* ---------- 抵达终点，触发结局彩蛋 ---------- */
+                    if (player.x >= END_TRIGGER_X) triggerEnding();
+                }
+
+                /* =====================================================================
+   9. 渲染
+   ===================================================================== */
+                function render() {
+                    const camX = Math.round(camera.x);
+
+                    /* ---- 天空：分段色带，营造清爽的像素渐变 ---- */
+                    const skyBands = [
+                        "#bfe3fb",
+                        "#c9e8fc",
+                        "#d4edfd",
+                        "#dff2fe",
+                        "#e9f7ff",
+                        "#f3fbff",
+                    ];
+                    const bandH = Math.ceil(HORIZON / skyBands.length);
+                    for (let i = 0; i < skyBands.length; i++) {
+                        rect(g, 0, i * bandH, VW, bandH, skyBands[i]);
+                    }
+
+                    /* ---- 暖阳（右上角，柔和治愈） ---- */
+                    pixelCircle(g, 546, 56, 22, "rgba(255, 246, 205, .55)");
+                    pixelCircle(g, 546, 56, 15, "#fff0b8");
+                    pixelCircle(g, 546, 56, 11, "#ffe38c");
+
+                    /* ---- 云朵（视差缓缓飘动） ---- */
+                    for (const c of clouds) {
+                        let sx = c.x - camX * c.depth;
+                        sx = ((sx % CLOUD_SPAN) + CLOUD_SPAN) % CLOUD_SPAN;
+                        const w = c.spr.width;
+                        const baseX = Math.round(sx) - w;
+                        const yy = Math.round(c.y);
+                        if (baseX + w > -40 && baseX < VW + 40)
+                            g.drawImage(c.spr, baseX, yy);
+                        // 另一份用于接缝处无缝衔接
+                        const altX = baseX + CLOUD_SPAN;
+                        if (altX < VW + 40) g.drawImage(c.spr, altX, yy);
+                    }
+
+                    /* ---- 远景层：松嫩平原 + 校园航拍全景（视差最慢，可无缝平铺） ---- */
+                    drawTiled(farCanvas, camX * PAR_FAR, FAR_TOP);
+
+                    /* ---- 中景层：中距离林带与低矮校舍（视差居中，可无缝平铺） ---- */
+                    drawTiled(midCanvas, camX * PAR_MID, MID_TOP);
+
+                    /* ---- 中景地标：前段拱门主教学楼，后段环湖图书馆（随推进依次切换） ---- */
+                    // 两座地标在世界坐标上各自成段，前后衔接自然
+                    drawLandmark(archCanvas, ARCH_X, ARCH_H);
+                    drawLandmark(libraryCanvas, LIB_X, LIB_H);
+
+                    /* ---- 近景层：草地、人行道与装饰物（预渲染贴图，按镜头横向裁切一次 drawImage 完成） ---- */
+                    if (groundCanvas) {
+                        g.drawImage(
+                            groundCanvas,
+                            camX,
+                            0,
+                            VW,
+                            VH - GROUND_TOP,
+                            0,
+                            GROUND_TOP,
+                            VW,
+                            VH - GROUND_TOP,
+                        );
+                    }
+                    if (sceneryCanvas) {
+                        g.drawImage(
+                            sceneryCanvas,
+                            camX,
+                            0,
+                            VW,
+                            VH - SCENERY_TOP,
+                            0,
+                            SCENERY_TOP,
+                            VW,
+                            VH - SCENERY_TOP,
+                        );
+                    }
+
+                    /* ---- 角色：先画 NPC，再画玩家 ---- */
+                    for (const n of npcs) {
+                        const sx = n.x - camX;
+                        if (sx < -60 || sx > VW + 60) continue;
+                        const breathe =
+                            Math.round((Math.sin(n.breathe * 1.6) + 1) * 0.5) -
+                            1; // 轻微呼吸感
+                        const pose = Object.assign({}, POSE_IDLE, {
+                            bob: breathe,
+                        });
+                        drawCharacter(g, sx, GROUND_Y, n, pose, n.facing);
+                        if (!n.seen)
+                            drawExclaim(
+                                g,
+                                sx,
+                                GROUND_Y - 27 * CHAR_SCALE,
+                                clock + n.index,
+                            );
+                    }
+
+                    const psx = player.x - camX;
+                    const walkIdx =
+                        Math.floor(player.animT / WALK_FRAME_TIME) % 4;
+                    const ppose = player.moving
+                        ? POSES_WALK[walkIdx]
+                        : POSE_IDLE;
+                    drawCharacter(
+                        g,
+                        psx,
+                        GROUND_Y,
+                        PLAYER_SKIN_C,
+                        ppose,
+                        player.facing,
+                    );
+
+                    /* ---- 结局：白闪后淡入黄昏环湖图书馆 ---- */
+                    if (state === "ending") {
+                        if (endingT < 0.62) {
+                            const t = endingT;
+                            const a =
+                                t < 0.16
+                                    ? t / 0.16
+                                    : Math.max(0, 1 - (t - 0.16) / 0.46);
+                            g.fillStyle =
+                                "rgba(255, 255, 255, " +
+                                (a * 0.94).toFixed(3) +
+                                ")";
+                            g.fillRect(0, 0, VW, VH);
+                        }
+                        if (duskCanvas && endingT > 0.35) {
+                            g.globalAlpha = Math.min(1, (endingT - 0.35) / 0.9);
+                            g.drawImage(duskCanvas, 0, 0);
+                            g.globalAlpha = 1;
+                        }
+                    }
+                }
+
+                /** 横向无缝平铺贴图（offset 为视差后的滚动量） */
+                function drawTiled(img, offset, top) {
+                    if (!img) return;
+                    const w = img.width;
+                    const start = -(((offset % w) + w) % w);
+                    for (let x = start; x < VW; x += w)
+                        g.drawImage(img, Math.round(x), top);
+                }
+
+                /** 地标贴图：底边对齐地平线，随镜头横向平移（滑入滑出画面，无需切换动画） */
+                function drawLandmark(img, worldX, h) {
+                    if (!img) return;
+                    const left = Math.round(worldX - camera.x);
+                    if (left > VW || left + img.width < 0) return; // 完全在画面外
+                    g.drawImage(img, left, HORIZON - h);
+                }
+
+                /* =====================================================================
+   10. Galgame 问答界面（组织部部长）
+   —— 立绘占位框完全由 CSS 的 box-shadow 拼出，不引入任何图片
+   —— 对话文本与提问选项走 DOM，支持鼠标点击与键盘操作
+   ===================================================================== */
+
+                /* 24 x 30 的角色立绘像素图：'.' 透明，字母对应下面的调色板 */
+                const PORTRAIT_ROWS = [
+                    "........HHHHHHHH........",
+                    "......HHHHHHHHHHHH......",
+                    ".....HHHHHHHHHHHHHH.....",
+                    "....HHHHHHHHHHHHHHHH....",
+                    "...HHHHHHHHHHHHHHHHHH...",
+                    "...HHhhhhhhhhhhhhhhHH...",
+                    "...HHSSSSSSSSSSSSSSHH...",
+                    "...HHSSSSSSSSSSSSSSHH...",
+                    "...HHSSEESSSSSSEESSHH...",
+                    "...HHSSEESSSSSSEESSHH...",
+                    "...HHSSSSSSSSSSSSSSHH...",
+                    "...HHSSSSSSMMSSSSSSHH...",
+                    "...HHSSSSSSSSSSSSSSHH...",
+                    "....SSSSSSSSSSSSSSSS....",
+                    ".....SSSSSSSSSSSSSS.....",
+                    ".......SSSSSSSSSS.......",
+                    "........SSSSSSSS........",
+                    "......WWWWWWWWWWWW......",
+                    "....WWWWWWWWWWWWWWWW....",
+                    "..WWWWWWWWWWWWWWWWWWWW..",
+                    "..WWWWWWCCCCCCCCWWWWWW..",
+                    "..WWWWWWWWCCCCWWWWWWWW..",
+                    "..WWWWWWWWWCCWWWWWWWWW..",
+                    "..WWWWWWWBBWWWWWWWWWWW..",
+                    "..WWWWWWBBBBWWWWWWWWWW..",
+                    "..WWWWWWWBBWWWWWWWWWWW..",
+                    "..WWWWWWWWWWWWWWWWWWWW..",
+                    "..wwWWWWWWWWWWWWWWWWww..",
+                    "..wwwWWWWWWWWWWWWWWwww..",
+                    "..wwwwwwwwwwwwwwwwwwww..",
+                ];
+                const PORTRAIT_PALETTE = {
+                    H: (c) => c.hairColor, // 头发
+                    h: (c) => shade(c.hairColor, 0.42), // 发丝高光
+                    S: (c) => c.skin, // 皮肤
+                    E: () => "#3a3230", // 眼睛
+                    M: () => "#c98a80", // 嘴
+                    W: (c) => c.shirt, // 上衣
+                    w: (c) => shade(c.shirt, -0.18), // 袖子 / 衣服阴影
+                    C: () => "#ffffff", // 衣领
+                    B: (c) => c.badge, // 领带 / 徽章
+                };
+
+                const galEl = document.getElementById("gal");
+                const galPxEl = document.getElementById("gal-px");
+                const galDialogEl = document.getElementById("gal-dialog");
+                const galNameEl = document.getElementById("gal-name");
+                const galTextEl = document.getElementById("gal-text");
+                const galOptsEl = document.getElementById("gal-options");
+                const galSkipEl = document.getElementById("gal-skip");
+                const galExitEl = document.getElementById("gal-exit");
+
+                const GAL_TYPE_CHAR = 0.02; // 打字机速度：每个字用时（秒）
+
+                const gal = {
+                    open: false,
+                    typing: false,
+                    acc: 0, // 打字机累计时间
+                    shown: 0, // 已显示字数
+                    full: "",
+                    after: null,
+                    npc: null, // 当前对话的 NPC
+                    sel: -1, // -1 表示当前没有高亮项（避免误按回车直接选中）
+                    answered: new Set(),
+                };
+
+                /** 用 box-shadow 把像素图画进占位框（每个像素是一个 1em 方块） */
+                function buildPortrait() {
+                    const c = NPC_DATA[0];
+                    const shadows = [];
+                    PORTRAIT_ROWS.forEach((row, y) => {
+                        for (let x = 0; x < row.length; x++) {
+                            const colorOf = PORTRAIT_PALETTE[row[x]];
+                            if (!colorOf) continue;
+                            shadows.push(
+                                x + "em " + y + "em 0 0 " + colorOf(c),
+                            );
+                        }
+                    });
+                    galPxEl.style.boxShadow = shadows.join(",");
+                }
+
+                /** 打字机式显示文本，显示完成后执行 after 回调（由主循环按 dt 驱动，帧率无关） */
+                function galSetText(text, after) {
+                    gal.full = text;
+                    gal.after = after || null;
+                    gal.typing = true;
+                    gal.acc = 0;
+                    gal.shown = 0;
+                    galTextEl.textContent = "";
+                    galSkipEl.classList.add("on");
+                }
+                function galTick(dt) {
+                    if (!gal.typing) return;
+                    gal.acc += dt;
+                    const want = Math.min(
+                        gal.full.length,
+                        Math.floor(gal.acc / GAL_TYPE_CHAR),
+                    );
+                    if (want !== gal.shown) {
+                        gal.shown = want;
+                        galTextEl.textContent = gal.full.slice(0, want);
+                    }
+                    if (want >= gal.full.length) galFinishTyping();
+                }
+                function galFinishTyping() {
+                    if (!gal.typing) return;
+                    gal.typing = false;
+                    gal.shown = gal.full.length;
+                    galTextEl.textContent = gal.full;
+                    galSkipEl.classList.remove("on");
+                    const cb = gal.after;
+                    gal.after = null;
+                    if (cb) cb();
+                }
+                /** 点击文字 / 按空格：立即显示完整台词 */
+                function galSkip() {
+                    if (gal.typing) galFinishTyping();
+                }
+
+                /** 弹出全部提问选项（回答结束后再次调用） */
+                function galRenderOptions() {
+                    galOptsEl.textContent = "";
+                    GAL_OPTIONS.forEach((opt, i) => {
+                        const btn = document.createElement("button");
+                        btn.type = "button";
+                        btn.className = "gal-opt";
+                        if (gal.answered.has(i)) btn.classList.add("done"); // 已问过的问题打个勾
+                        const num = document.createElement("span");
+                        num.className = "num";
+                        num.textContent = i + 1 + ".";
+                        const qt = document.createElement("span");
+                        qt.className = "qt";
+                        qt.textContent = opt.q;
+                        btn.appendChild(num);
+                        btn.appendChild(qt);
+                        btn.addEventListener("click", () => galPick(i));
+                        galOptsEl.appendChild(btn);
+                    });
+                    gal.sel = -1;
+                    galHighlight();
+                    galEl.classList.add("opts");
+                }
+                function galHighlight() {
+                    const btns = galOptsEl.children;
+                    for (let i = 0; i < btns.length; i++)
+                        btns[i].classList.toggle("sel", i === gal.sel);
+                }
+                /** 键盘上下选择提问 */
+                function galNav(d) {
+                    const n = galOptsEl.children.length;
+                    if (!n) return;
+                    if (gal.sel < 0) gal.sel = d > 0 ? 0 : n - 1;
+                    else gal.sel = (gal.sel + d + n) % n;
+                    galHighlight();
+                    Sound.step();
+                }
+                function galConfirm() {
+                    if (gal.typing) {
+                        galSkip();
+                        return;
+                    }
+                    if (gal.sel >= 0 && gal.sel < galOptsEl.children.length)
+                        galPick(gal.sel);
+                }
+                /** 选择某个提问：选项消失 → 播放部长回答 → 回答结束重新弹出全部选项 */
+                function galPick(i) {
+                    const opt = GAL_OPTIONS[i];
+                    if (!opt || gal.typing) return;
+                    gal.answered.add(i);
+                    galOptsEl.textContent = ""; // 选项消失
+                    gal.sel = -1;
+                    galEl.classList.remove("opts");
+                    Sound.talk();
+                    galSetText(opt.a, galRenderOptions); // 文本展示完成后重新弹出全部提问
+                }
+
+                function openGal(npc) {
+                    gal.open = true;
+                    gal.npc = npc;
+                    npc.locked = true;
+                    if (!npc.seen) {
+                        npc.seen = true;
+                        seenCount++;
+                        refreshHud();
+                    }
+                    state = "galgame";
+
+                    galNameEl.textContent = npc.name;
+                    galNameEl.style.setProperty("--c", npc.shirt);
+                    galTextEl.textContent = "";
+                    galOptsEl.textContent = "";
+                    galEl.classList.remove("opts");
+                    galEl.classList.add("on");
+                    void galEl.offsetWidth; // 触发重排，让淡入动画生效
+                    galEl.classList.add("show");
+                    hudEl.style.opacity = "0";
+                    tags.forEach((t) => t.el.classList.remove("on"));
+
+                    Sound.talk();
+                    Sound.bgmDuck(true);
+                    galSetText(GAL_GREETING, galRenderOptions); // 开场引导台词 → 弹出提问选项
+                }
+
+                function closeGal() {
+                    if (!gal.open) return; // 只有问答界面真的开着时才处理
+                    gal.typing = false;
+                    gal.after = null;
+                    gal.open = false;
+                    if (gal.npc) {
+                        gal.npc.talked = true;
+                        gal.npc = null;
+                    }
+                    galEl.classList.remove("show", "opts");
+                    setTimeout(() => {
+                        if (!gal.open) galEl.classList.remove("on");
+                    }, 320);
+                    hudEl.style.opacity = "";
+                    state = "play";
+                    Sound.close();
+                    Sound.bgmDuck(false);
+                }
+
+                galDialogEl.addEventListener("click", galSkip); // 点击对话框可跳过打字
+                galExitEl.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    closeGal();
+                });
+
+                /* =====================================================================
+   11. 活动展板（群像背景）与照片画框
+   —— 第 2~4 位 NPC 各配一块展板，场景全部用 CSS 矩形拼出（无脸群像 + 项目道具）
+   —— 展板悬在人物头顶上方，不会遮挡角色，也不触发对话
+   —— 点击展板弹出照片画框；照片文件放到与本网页相同的目录即可替换
+   ===================================================================== */
+
+                /* 展板配置：x 对应 NPC 所在位置，npcIndex 对应 NPC_DATA，file 为照片占位文件名（换成你的文件名即可） */
+                const BOOTHS = [
+                    {
+                        x: 1560,
+                        npcIndex: 1,
+                        title: "辩论赛",
+                        kind: "debate",
+                        file: "photo-debate.jpg",
+                    },
+                    {
+                        x: 2320,
+                        npcIndex: 2,
+                        title: "乒乓球比赛",
+                        kind: "pingpong",
+                        file: "photo-pingpong.jpg",
+                    },
+                    {
+                        x: 3080,
+                        npcIndex: 3,
+                        title: "羽毛球比赛",
+                        kind: "badminton",
+                        file: "photo-badminton.jpg",
+                    },
+                ];
+
+                /* 群像配色（只画头与身体，不画五官，因此可复用大量随机人物） */
+                const CROWD_SKIN = ["#ffdcbb", "#ffe1c6", "#f6c9a0", "#e8b98f"];
+                const CROWD_SHIRT = [
+                    "#8fd3f4",
+                    "#ffc48f",
+                    "#c9e88f",
+                    "#ffd9a0",
+                    "#b8c9f0",
+                    "#f0a8b8",
+                    "#9fdcc4",
+                    "#d8c8f0",
+                ];
+
+                /** 单个「无脸」人物：按身高推算身体宽窄（约 1:3.4），只有剪影不画五官 */
+                function figure(x, baseY, h, skin, shirt, pants) {
+                    const w = Math.min(9, Math.max(3, Math.round(h / 3.4)));
+                    const headH = Math.min(
+                        8,
+                        Math.max(3, Math.round(h * 0.28)),
+                    );
+                    const legH = Math.min(9, Math.max(2, Math.round(h * 0.28)));
+                    const legW = Math.max(1, Math.round(w * 0.34));
+                    const gap = Math.max(1, w - legW * 2);
+                    const leg = pants || "#5b6472";
+                    return [
+                        [x, baseY - h, w, headH, skin], // 头
+                        [x, baseY - h + headH, w, h - headH - legH, shirt], // 上身
+                        [x, baseY - legH, legW, legH, leg], // 左腿
+                        [x + legW + gap, baseY - legH, legW, legH, leg], // 右腿
+                    ];
+                }
+
+                /** 一排「无脸」群像观众 */
+                function crowdRow(rr, x0, x1, baseY, minH, maxH, step) {
+                    const out = [];
+                    for (let x = x0; x < x1; x += step + Math.floor(rr() * 3)) {
+                        const h = minH + Math.floor(rr() * (maxH - minH + 1));
+                        out.push(
+                            ...figure(
+                                x,
+                                baseY,
+                                h,
+                                CROWD_SKIN[
+                                    Math.floor(rr() * CROWD_SKIN.length)
+                                ],
+                                CROWD_SHIRT[
+                                    Math.floor(rr() * CROWD_SHIRT.length)
+                                ],
+                            ),
+                        );
+                    }
+                    return out;
+                }
+
+                /** 展板场景的所有矩形块：[x, y, 宽, 高, 颜色]，单位为「格」，1 格 = 2 逻辑像素（共 140 x 46 格） */
+                function sceneRects(kind) {
+                    const rr = mulberry32(
+                        { debate: 4021, pingpong: 5077, badminton: 6133 }[kind],
+                    );
+                    const R = [];
+                    const W = 140,
+                        F = 46;
+
+                    if (kind === "debate") {
+                        /* ---------- 辩论赛：横幅 + 观众 + 舞台 + 正反方讲台与辩手 ---------- */
+                        R.push([0, 0, W, 6, "#2f5d8a"]); // 顶部横幅
+                        R.push([8, 1, W - 16, 3, "#f4f8ff"]);
+                        R.push([0, 6, W, 20, "#eaf2fb"]); // 背板
+                        R.push(...crowdRow(rr, 2, W - 2, 26, 10, 13, 6)); // 观众群像
+                        R.push([0, 26, W, 2, "#e0c194"]); // 台口高光
+                        R.push([0, 28, W, 14, "#c9a06a"]); // 舞台台面
+                        for (let x = 6; x < W; x += 12)
+                            R.push([x, 28, 1, 14, "#bb9160"]); // 木板缝
+                        R.push([0, 42, W, F - 42, "#8a6b4a"]); // 台前立面
+                        R.push(...figure(13, 44, 32, "#ffe1c6", "#3d7fb8")); // 正方辩手
+                        R.push(...figure(25, 44, 30, "#ffdcbb", "#5aa0d8"));
+                        R.push(...figure(97, 44, 32, "#ffe6cf", "#c9695a")); // 反方辩手
+                        R.push(...figure(109, 44, 30, "#ffdcbb", "#e0806f"));
+                        R.push(...figure(63, 44, 36, "#ffe1c6", "#8a7fb8")); // 主持人
+                        R.push([54, 32, 32, 12, "#b08a5a"]); // 主持台
+                        R.push([54, 32, 32, 2, "#cfa678"]);
+                        R.push([8, 22, 22, 22, "#3d7fb8"]); // 正方讲台
+                        R.push([8, 22, 22, 4, "#5aa0d8"]);
+                        R.push([110, 22, 22, 22, "#c9695a"]); // 反方讲台
+                        R.push([110, 22, 22, 4, "#e0806f"]);
+                    } else if (kind === "pingpong") {
+                        /* ---------- 乒乓球比赛：场馆 + 观众 + 球台球网 + 两名选手 ---------- */
+                        R.push([0, 0, W, 5, "#dbe9f2"]);
+                        R.push([0, 5, W, 16, "#e9f3ec"]);
+                        R.push([0, 21, W, 5, "#cfe0d2"]); // 墙裙
+                        R.push(...crowdRow(rr, 2, W - 2, 26, 10, 13, 6));
+                        R.push([0, 26, W, F - 26, "#2f7a52"]); // 场地
+                        R.push([0, 26, W, 1, "#f4f9f4"]); // 边线
+                        R.push([69, 27, 2, F - 27, "#f4f9f4"]); // 中线
+                        R.push(...figure(24, 44, 30, "#ffe1c6", "#e05a5a")); // 左选手
+                        R.push(...figure(106, 44, 30, "#ffdcbb", "#4a7fd0")); // 右选手
+                        R.push([46, 32, 48, 10, "#2f6f9e"]); // 球台
+                        R.push([46, 32, 48, 1, "#5fa0cc"]);
+                        R.push([46, 42, 48, 1, "#22547a"]);
+                        R.push([52, 42, 3, 4, "#22547a"]); // 桌腿
+                        R.push([85, 42, 3, 4, "#22547a"]);
+                        R.push([66, 24, 8, 18, "#f2f6ef"]); // 球网
+                        R.push([66, 24, 1, 18, "#b9c2c9"]);
+                        R.push([73, 24, 1, 18, "#b9c2c9"]);
+                        R.push([36, 32, 7, 7, "#c0392b"]); // 左球拍
+                        R.push([97, 31, 7, 7, "#2f3b46"]); // 右球拍
+                        R.push([72, 20, 3, 3, "#ffffff"]); // 球
+                    } else {
+                        /* ---------- 羽毛球比赛：场馆 + 观众 + 球网 + 两名选手 ---------- */
+                        R.push([0, 0, W, 5, "#dbe9f2"]);
+                        R.push([0, 5, W, 16, "#eaf1fa"]);
+                        R.push([0, 21, W, 5, "#cfd9e6"]);
+                        R.push(...crowdRow(rr, 2, W - 2, 26, 10, 13, 6));
+                        R.push([0, 26, W, F - 26, "#3f7fbf"]); // 场地
+                        R.push([0, 26, W, 1, "#ffffff"]);
+                        R.push([69, 27, 2, F - 27, "#ffffff"]); // 中线
+                        R.push([14, 27, 1, F - 27, "#ffffff"]); // 边线
+                        R.push([125, 27, 1, F - 27, "#ffffff"]);
+                        R.push(...figure(26, 44, 30, "#ffe6cf", "#f2c14e")); // 左选手
+                        R.push(...figure(102, 44, 30, "#ffdcbb", "#7ec8f0")); // 右选手
+                        R.push([64, 22, 12, 22, "#f2f6ef"]); // 球网
+                        R.push([64, 22, 12, 1, "#ffffff"]); // 网上白带
+                        R.push([63, 20, 1, 24, "#b9c2c9"]); // 网柱
+                        R.push([75, 20, 1, 24, "#b9c2c9"]);
+                        R.push([36, 30, 7, 9, "#e8e8e8"]); // 左球拍
+                        R.push([38, 39, 2, 4, "#8a6b4a"]);
+                        R.push([95, 29, 7, 9, "#e8e8e8"]); // 右球拍
+                        R.push([97, 38, 2, 4, "#8a6b4a"]);
+                        R.push([80, 14, 4, 4, "#ffffff"]); // 羽毛球
+                        R.push([81, 18, 1, 1, "#d8d8d8"]);
+                    }
+                    return R;
+                }
+
+                const boothsEl = document.getElementById("booths");
+                const photoEl = document.getElementById("photo");
+                const photoFrameEl = document.getElementById("photo-frame");
+                const photoImgEl = document.getElementById("photo-img");
+
+                /* 图片显示区域上限（逻辑像素）：相框按图片真实比例贴合，不留空白 */
+                const PHOTO_MAX_W = 556;
+                const PHOTO_MAX_H = 258;
+                const photoTitleEl = document.getElementById("photo-title");
+                const photoFileEl = document.getElementById("photo-file");
+                const photoHoldEl = document.getElementById("photo-hold");
+
+                const booths = [];
+
+                /** 把每块展板渲染成 DOM */
+                function buildBooths() {
+                    BOOTHS.forEach((b) => {
+                        const el = document.createElement("div");
+                        el.className = "booth";
+
+                        const frame = document.createElement("div");
+                        frame.className = "booth-frame";
+
+                        const scene = document.createElement("div");
+                        scene.className = "booth-scene";
+                        sceneRects(b.kind).forEach((r) => {
+                            const d = document.createElement("div");
+                            d.className = "booth-px";
+                            d.style.left = r[0] + "em";
+                            d.style.top = r[1] + "em";
+                            d.style.width = r[2] + "em";
+                            d.style.height = r[3] + "em";
+                            d.style.background = r[4];
+                            scene.appendChild(d);
+                        });
+                        frame.appendChild(scene);
+
+                        const cap = document.createElement("div");
+                        cap.className = "booth-cap";
+                        const nameEl = document.createElement("span");
+                        nameEl.textContent = b.title;
+                        const tipEl = document.createElement("span");
+                        tipEl.className = "tip";
+                        tipEl.textContent = "点击查看照片 ▸";
+                        cap.appendChild(nameEl);
+                        cap.appendChild(tipEl);
+                        frame.appendChild(cap);
+
+                        el.appendChild(frame);
+                        el.addEventListener("click", () => openPhoto(b));
+                        boothsEl.appendChild(el);
+                        // y 为展板底边，正好落在名牌上方
+                        booths.push({
+                            el,
+                            x: b.x,
+                            y: 186,
+                            npcIndex: b.npcIndex,
+                            data: b,
+                        });
+                    });
+                }
+
+                /** 展板随镜头平移；只有跟对应 NPC 聊完之后才会揭示出来 */
+                function updateBooths() {
+                    const visible = state === "play" || state === "toast";
+                    for (const b of booths) {
+                        const sx = ((b.x - camera.x) / VW) * 100;
+                        const npc = npcs[b.npcIndex];
+                        const unlocked = !!(npc && npc.talked);
+                        b.el.style.left = sx + "%";
+                        b.el.style.top = (b.y / VH) * 100 + "%";
+                        b.el.classList.toggle(
+                            "on",
+                            visible && unlocked && sx > -22 && sx < 122,
+                        );
+                    }
+                }
+
+                /* ---------- 照片画框 ---------- */
+
+                /** 恢复默认相框尺寸，换图时先清掉上一张留下的尺寸 */
+                function resetPhotoFrame() {
+                    photoFrameEl.style.width = "";
+                    photoFrameEl.style.height = "";
+                }
+
+                /** 按图片真实宽高比计算相框尺寸：上限内尽量放大，并完全贴合图片 */
+                function fitPhotoFrame() {
+                    const nw = photoImgEl.naturalWidth;
+                    const nh = photoImgEl.naturalHeight;
+                    if (!nw || !nh) return;
+                    const k = Math.min(PHOTO_MAX_W / nw, PHOTO_MAX_H / nh);
+                    const w = Math.max(1, Math.round(nw * k));
+                    const h = Math.max(1, Math.round(nh * k));
+                    photoFrameEl.style.width = "calc(var(--s) * " + w + "px)";
+                    photoFrameEl.style.height = "calc(var(--s) * " + h + "px)";
+                }
+
+                function openPhoto(b) {
+                    if (state !== "play" && state !== "toast") return;
+                    state = "photo";
+                    photoTitleEl.textContent = b.title;
+                    photoFileEl.textContent = b.file;
+                    photoHoldEl.classList.remove("hide");
+                    resetPhotoFrame();
+                    photoImgEl.onload = () => {
+                        photoHoldEl.classList.add("hide");
+                        fitPhotoFrame();
+                    };
+                    photoImgEl.onerror = () =>
+                        photoHoldEl.classList.remove("hide");
+                    photoImgEl.src = b.file;
+                    // 图片已在缓存中时不会再触发 onload，这里补一次判断
+                    if (photoImgEl.complete && photoImgEl.naturalWidth > 0) {
+                        photoHoldEl.classList.add("hide");
+                        fitPhotoFrame();
+                    }
+                    photoEl.classList.add("on");
+                    void photoEl.offsetWidth;
+                    photoEl.classList.add("show");
+                    Sound.talk();
+                }
+                function closePhoto() {
+                    if (state !== "photo") return;
+                    state = "play";
+                    photoEl.classList.remove("show");
+                    setTimeout(() => {
+                        if (state !== "photo") photoEl.classList.remove("on");
+                    }, 260);
+                    Sound.close();
+                }
+                photoEl.addEventListener("click", closePhoto);
+
+                /* =====================================================================
+   12. 输入、界面联动与主循环
+   ===================================================================== */
+
+                /* ---------------- 自适应缩放 ---------------- */
+                function resize() {
+                    const w = window.innerWidth,
+                        h = window.innerHeight;
+                    const scale = Math.min(w / VW, h / VH);
+                    const dw = Math.max(1, Math.round(VW * scale));
+                    const dh = Math.max(1, Math.round(VH * scale));
+                    canvas.style.width = dw + "px";
+                    canvas.style.height = dh + "px";
+
+                    const r = canvas.getBoundingClientRect();
+                    uiEl.style.left = r.left + "px";
+                    uiEl.style.top = r.top + "px";
+                    uiEl.style.width = r.width + "px";
+                    uiEl.style.height = r.height + "px";
+                    uiEl.style.setProperty("--s", (r.width / VW).toFixed(4));
+                }
+                window.addEventListener("resize", resize);
+                window.addEventListener("orientationchange", resize);
+
+                /* ---------------- 世界内浮动名牌 ---------------- */
+                const tags = [];
+                function buildTags() {
+                    npcs.forEach((n) => {
+                        const el = document.createElement("div");
+                        el.className = "wtag";
+                        el.style.setProperty("--c", n.shirt);
+                        el.innerHTML = '<span class="dot"></span>' + n.name;
+                        tagsEl.appendChild(el);
+                        tags.push({ el, x: n.x, y: GROUND_Y - 96, npc: n }); // 名牌悬在头顶上方，避开“!”气泡
+                    });
+                    // 终点提示牌
+                    const goal = document.createElement("div");
+                    goal.className = "wtag";
+                    goal.classList.add("goal");
+                    goal.textContent = "终点 · 欢迎你";
+                    tagsEl.appendChild(goal);
+                    tags.push({ el: goal, x: 4420, y: 112, npc: null });
+
+                    // 起点告示牌牌面文字：贴在木牌上，随镜头一起移动
+                    const sign = document.createElement("div");
+                    sign.className = "wtag";
+                    sign.classList.add("sign");
+                    sign.textContent = "理学院";
+                    tagsEl.appendChild(sign);
+                    tags.push({ el: sign, x: 96, y: 236, npc: null });
+
+                    // 终点拱门横幅上的「组 织 部」（原先是三颗像素爱心）
+                    const archText = document.createElement("div");
+                    archText.className = "wtag";
+                    archText.classList.add("archtext");
+                    ["组", "织", "部"].forEach((ch) => {
+                        const sp = document.createElement("span");
+                        sp.textContent = ch;
+                        archText.appendChild(sp);
+                    });
+                    tagsEl.appendChild(archText);
+                    tags.push({ el: archText, x: 4420, y: 168, npc: null });
+                }
+                function updateTags() {
+                    const visible = state !== "ending"; // 结局画面不显示世界内的名牌
+                    for (const t of tags) {
+                        const sx = ((t.x - camera.x) / VW) * 100;
+                        const sy = (t.y / VH) * 100;
+                        if (!visible || sx < -14 || sx > 114) {
+                            t.el.classList.remove("on");
+                            continue;
+                        }
+                        // NPC 名牌：探索过的隐藏，避免与对话框重复
+                        const hide = t.npc && t.npc.seen && state !== "title";
+                        t.el.style.left = sx + "%";
+                        t.el.style.top = sy + "%";
+                        t.el.classList.toggle("on", !hide);
+                    }
+                }
+
+                /* ---------------- HUD ---------------- */
+                function buildHud() {
+                    for (let i = 0; i < npcs.length; i++)
+                        hudPipsEl.appendChild(document.createElement("i"));
+                    refreshHud();
+                }
+                function refreshHud() {
+                    hudNumEl.textContent = seenCount + " / " + npcs.length;
+                    const pips = hudPipsEl.children;
+                    for (let i = 0; i < pips.length; i++)
+                        pips[i].classList.toggle("on", i < seenCount);
+                }
+
+                /* ---------------- 对话 ---------------- */
+                let currentNpc = null;
+                function openDialog(npc) {
+                    currentNpc = npc;
+                    npc.locked = true;
+                    if (!npc.seen) {
+                        npc.seen = true;
+                        seenCount++;
+                        refreshHud();
+                    }
+                    state = "dialog";
+
+                    dlgNameEl.textContent = npc.name;
+                    dlgNameEl.style.setProperty("--c", npc.shirt);
+                    dlgTextEl.textContent = STORIES[npc.index] || "";
+                    dialogEl.classList.add("show");
+
+                    Sound.talk();
+                    Sound.bgmDuck(true);
+                }
+                function closeDialog() {
+                    if (state !== "dialog") return;
+                    if (currentNpc) currentNpc.talked = true; // 聊完才揭示这块活动展板
+                    dialogEl.classList.remove("show");
+                    currentNpc = null;
+                    state = "play";
+                    Sound.close();
+                    Sound.bgmDuck(false);
+                    if (seenCount >= npcs.length) showToast();
+                }
+
+                /** 五段剧情全部看完时的轻提示（复用对话框位置，不打断节奏） */
+                function showToast() {
+                    dlgNameEl.textContent = "组织部";
+                    dlgNameEl.style.setProperty("--c", "#ffd98a");
+                    dlgTextEl.textContent =
+                        "所有介绍都看完啦！继续向右走，去终点看看我们的彩蛋吧 →";
+                    dialogEl.classList.add("show");
+                    state = "toast";
+                    setTimeout(() => {
+                        if (state === "toast") {
+                            dialogEl.classList.remove("show");
+                            state = "play";
+                        }
+                    }, 2600);
+                }
+
+                /* ---------------- 结局彩蛋 ---------------- */
+                function triggerEnding() {
+                    if (state === "ending") return;
+                    state = "ending";
+                    endingT = 0;
+                    player.vx = 0;
+                    player.moving = false;
+                    dialogEl.classList.remove("show");
+                    hudEl.style.opacity = "0";
+                    tags.forEach((t) => t.el.classList.remove("on"));
+                    Sound.ending();
+                    Sound.bgmDuck(true);
+                    setTimeout(() => {
+                        if (state === "ending") endingEl.classList.add("show");
+                    }, 430);
+                }
+
+                function resetGame() {
+                    state = "play";
+                    endingT = 0;
+                    player.x = 140;
+                    player.vx = 0;
+                    player.facing = 1;
+                    player.animT = 0;
+                    player.stepT = STEP_INTERVAL;
+                    camera.x = 0;
+                    seenCount = 0;
+                    npcs.forEach((n) => {
+                        n.seen = false;
+                        n.locked = false;
+                        n.talked = false;
+                    });
+                    refreshHud();
+                    endingEl.classList.remove("show");
+                    hudEl.style.opacity = "";
+                    Sound.bgmDuck(false);
+                }
+
+                /* ---------------- 开始游戏 ---------------- */
+                function startGame() {
+                    Sound.init();
+                    Sound.ready();
+                    Sound.start();
+                    titleEl.classList.add("hide");
+                    setTimeout(() => {
+                        titleEl.style.display = "none";
+                    }, 600);
+                    hudEl.style.opacity = "";
+                    state = "play";
+                }
+
+                /* ---------------- 键盘输入 ---------------- */
+                window.addEventListener("keydown", (e) => {
+                    const k = e.code;
+                    if (
+                        [
+                            "ArrowLeft",
+                            "ArrowRight",
+                            "ArrowUp",
+                            "ArrowDown",
+                            "Space",
+                        ].includes(k)
+                    )
+                        e.preventDefault();
+                    keys[k] = true;
+                    if (e.repeat) return;
+                    Sound.resume(); // 顺手唤醒可能被挂起的音频上下文
+
+                    /* 标题页：任意启动键开始 */
+                    if (state === "title") {
+                        if (
+                            k === "Space" ||
+                            k === "Enter" ||
+                            k === "NumpadEnter"
+                        )
+                            startGame();
+                        return;
+                    }
+                    /* 结局页：R 键重来 */
+                    if (state === "ending") {
+                        if (k === "KeyR") resetGame();
+                        return;
+                    }
+                    /* Galgame 问答：方向键选择、回车确认、空格跳过打字、Esc 结束提问 */
+                    if (state === "galgame") {
+                        if (k === "ArrowUp" || k === "ArrowLeft") {
+                            galNav(-1);
+                            return;
+                        }
+                        if (k === "ArrowDown" || k === "ArrowRight") {
+                            galNav(1);
+                            return;
+                        }
+                        if (k === "Enter" || k === "NumpadEnter") {
+                            galConfirm();
+                            return;
+                        }
+                        if (k === "Space") {
+                            galSkip();
+                            return;
+                        }
+                        if (k === "Escape") {
+                            closeGal();
+                            return;
+                        }
+                        if (/^(Digit|Numpad)[1-8]$/.test(k)) {
+                            galPick(parseInt(k.slice(-1), 10) - 1);
+                            return;
+                        }
+                        return;
+                    }
+                    /* 照片画框：空格 / 回车 / Esc 关闭 */
+                    if (state === "photo") {
+                        if (k === "Space" || k === "Enter" || k === "Escape")
+                            closePhoto();
+                        return;
+                    }
+                    /* 对话 / 提示：空格关闭 */
+                    if (k === "Space" || k === "Enter") {
+                        if (state === "dialog") closeDialog();
+                        else if (state === "toast") {
+                            dialogEl.classList.remove("show");
+                            state = "play";
+                        }
+                    }
+                    /* 背景音乐开关 */
+                    if (k === "KeyM") Sound.bgmToggle();
+                    /* 随时重来 */
+                    if (k === "KeyR" && state === "play") resetGame();
+                });
+                window.addEventListener("keyup", (e) => {
+                    keys[e.code] = false;
+                });
+                // 失焦时清空按键，避免切窗口后人物一直走
+                window.addEventListener("blur", () => {
+                    for (const k in keys) keys[k] = false;
+                });
+
+                /* ---------------- 移动端触控按钮 ---------------- */
+                const tcMovePad = document.querySelector(".tc-move");
+                const tcActPad = document.querySelector(".tc-act");
+                const tcAgainPad = document.querySelector(".tc-again");
+                const tcAction = document.getElementById("tc-action");
+
+                const fireKey = (type, code) =>
+                    window.dispatchEvent(new KeyboardEvent(type, { code }));
+
+                // 按住方向键持续行走，松开即停；其余按钮点一下触发一次
+                document.querySelectorAll("#touch .tc-btn").forEach((btn) => {
+                    const code = btn.dataset.key;
+                    btn.addEventListener("pointerdown", (e) => {
+                        e.preventDefault();
+                        fireKey("keydown", code);
+                    });
+                    ["pointerup", "pointercancel", "pointerleave"].forEach((t) =>
+                        btn.addEventListener(t, () => fireKey("keyup", code)),
+                    );
+                    btn.addEventListener("contextmenu", (e) => e.preventDefault());
+                });
+                // 兜底：手指在任何地方抬起都清掉方向键，避免人物一直走
+                ["pointerup", "pointercancel"].forEach((t) =>
+                    window.addEventListener(t, () => {
+                        fireKey("keyup", "ArrowLeft");
+                        fireKey("keyup", "ArrowRight");
+                    }),
+                );
+
+                /* 左上角开关：null=跟随设备，true=强制显示，false=强制隐藏 */
+                const touchEl = document.getElementById("touch");
+                const touchToggleEl = document.getElementById("touch-toggle");
+                const touchStateEl = document.getElementById("touch-state");
+                let touchMode = null;
+                try {
+                    const saved = window.localStorage && window.localStorage.getItem("szb-touch");
+                    if (saved === "on") touchMode = true;
+                    else if (saved === "off") touchMode = false;
+                } catch (e) {
+                    /* 隐私模式等场景下 localStorage 不可用，忽略即可 */
+                }
+
+                /** 触控层当前是否可见（不依赖 getComputedStyle，测试环境也能跑） */
+                function touchLayerVisible() {
+                    if (touchMode === true) return true;
+                    if (touchMode === false) return false;
+                    if (typeof window.getComputedStyle !== "function") return false;
+                    return window.getComputedStyle(touchEl).display !== "none";
+                }
+
+                /** 应用开关状态：更新强制类、开关外观与按钮显隐 */
+                function applyTouchMode() {
+                    touchEl.classList.toggle("force-on", touchMode === true);
+                    touchEl.classList.toggle("force-off", touchMode === false);
+                    const on = touchLayerVisible();
+                    touchToggleEl.classList.toggle("on", on);
+                    touchToggleEl.setAttribute("aria-pressed", on ? "true" : "false");
+                    touchStateEl.textContent = on ? "开" : "关";
+                    lastTouchState = null; // 让状态刷新重算一次
+                    updateTouchUI();
+                    try {
+                        if (window.localStorage)
+                            window.localStorage.setItem("szb-touch", on ? "on" : "off");
+                    } catch (e) {
+                        /* 存不了就算了，不影响使用 */
+                    }
+                }
+
+                touchToggleEl.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    touchMode = !touchLayerVisible();
+                    applyTouchMode();
+                });
+
+                /** 触控按钮随状态显隐：探索时走路、对话时继续、结局时重来 */
+                let lastTouchState = null;
+                function updateTouchUI() {
+                    if (state === lastTouchState) return;
+                    lastTouchState = state;
+                    const walking = state === "play" || state === "toast";
+                    const acting =
+                        state === "title" || state === "dialog" || state === "toast";
+                    tcMovePad.classList.toggle("on", walking);
+                    tcActPad.classList.toggle("on", acting);
+                    tcAgainPad.classList.toggle("on", state === "ending");
+                    tcAction.textContent =
+                        state === "title" ? "开 始" : state === "dialog" ? "继 续" : "关 闭";
+                }
+
+                /* ---------------- 主循环 ---------------- */
+                let lastTime = performance.now();
+                function loop(now) {
+                    let dt = (now - lastTime) / 1000;
+                    lastTime = now;
+                    if (dt > 0.05) dt = 0.05; // 切标签页回来时避免跳帧
+                    if (dt < 0) dt = 0;
+
+                    update(dt);
+                    render();
+                    updateTags();
+                    updateBooths();
+                    updateTouchUI();
+
+                    requestAnimationFrame(loop);
+                }
+
+                /* ---------------- 启动 ---------------- */
+                buildGround();
+                buildScenery();
+                buildFarStrip();
+                buildMidStrip();
+                buildArchBuilding();
+                buildLibrary();
+                buildDuskScene();
+                buildPortrait();
+                buildTags();
+                buildBooths();
+                buildHud();
+                resize();
+                applyTouchMode();
+                requestAnimationFrame(loop);
+            })();
+        </script>
+    </body>
+</html>
