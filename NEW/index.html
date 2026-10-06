@@ -15,6 +15,9 @@
                 margin: 0;
                 padding: 0;
                 box-sizing: border-box;
+                /* 演示场景：禁用长按选中与点按高亮 */
+                -webkit-tap-highlight-color: transparent;
+                -webkit-user-drag: none;
             }
 
             html,
@@ -24,6 +27,10 @@
                 overflow: hidden;
                 background: #3c4a3d; /* 投影留白区域：柔和的草绿深色，不刺眼 */
                 -webkit-font-smoothing: antialiased;
+                /* 禁止选中文字、禁止 iOS 长按弹出菜单 */
+                user-select: none;
+                -webkit-user-select: none;
+                -webkit-touch-callout: none;
             }
 
             body {
@@ -1228,6 +1235,13 @@
         </div>
         <script>
             "use strict";
+
+            /* 禁用长按选中、右键菜单与拖拽：演示时不需要浏览器默认交互 */
+            ["contextmenu", "selectstart", "dragstart"].forEach(function (type) {
+                document.addEventListener(type, function (e) {
+                    e.preventDefault();
+                });
+            });
             /* =====================================================================
    像素校园 · 社联组织部招新探索
    单文件 / 纯前端 / 无外部资源 / 双击即可运行
